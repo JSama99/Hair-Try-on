@@ -5,8 +5,9 @@
 | Suite | Command | Result at hand-off |
 |---|---|---|
 | Python oracle | `cd reference && python3 -m pytest` | 64 passed |
-| JS port + try-on logic | `cd web && npm test` | 35 passed |
-| Browser end to end (Playwright, CSP modelled on the artifact host) | `cd web && npm run build && python3 test/e2e.py` | 28/28 checks |
+| JS port, try-on logic, salon config, Style Card | `cd web && npm test` | 50 passed |
+| Browser end to end: studio (Playwright, CSP modelled on the artifact host) | `cd web && npm run build && python3 test/e2e.py` | 28/28 checks |
+| Browser end to end: consultation and booking handoff | `cd web && python3 test/e2e_consult.py` | 51/51 checks |
 | HairKit (Swift 6.0.3 on Linux) | `cd ios/Packages/HairKit && swift test` (Linux: add `-Xlinker -lm`) | 57 passed |
 | iOS app | Xcode, on a device | **not compiled here** — see below |
 

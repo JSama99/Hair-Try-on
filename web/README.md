@@ -11,9 +11,13 @@ A single page: three.js renders styles generated on the device by `src/protostyl
 | `src/mesh-tools.js` | bust and occluder geometry: hole-free face, pressed skull, feminine sculpt, eyes, brows, lips, shoulders, hoops |
 | `src/worker.js` | generation off the main thread with a triangle budget (LOD0 or LOD1) |
 | `src/app.js` | UI, scene, photo pipeline, capture |
+| `src/salon-config.js`, `salon/salon.config.json` | the pilot salon: services mapped to catalog styles, booking links, validation |
+| `src/style-card.js` | StyleCardV1: build, validate, export (JSON / text); never contains images |
+| `src/consult-ui.js` | Save My Look, consultation details, sharing, booking handoff (see docs/PILOT.md) |
 | `tools/build.mjs` | esbuild bundle inlined into `dist/index.html`; models as hash-checked JSON |
 | `test/*.test.mjs` | node unit tests (oracle parity, logic) |
 | `test/e2e.py`, `test/serve.py` | Playwright end to end under an artifact-like CSP, CDN served from pinned local packages |
+| `test/e2e_consult.py` | the consultation journey end to end (share/clipboard present and absent, hostile config, phone) |
 
 Photo mode loads MediaPipe Tasks Vision 1.0.1 from jsDelivr (scripts) and the wasm binary and models from the page's own files. If the host refuses WebAssembly compilation, the page falls back to placing the style by hand.
 

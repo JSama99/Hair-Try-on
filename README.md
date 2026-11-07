@@ -4,6 +4,7 @@ Try **knotless braids, box braids, two-strand twists, locs and cornrows** on you
 
 - **Browser studio** (`web/`, published as an artifact): a 3D bust of a young Black woman with Monk skin tones 1–10, or your own photo — MediaPipe finds the face and hair, places the style, estimates your hairline and runs the honesty check. Everything stays in the tab.
 - **iPhone app** (`ios/`): live AR with ARKit face tracking, RealityKit, strand physics and a 3-second hairline calibration.
+- **Salon pilot** (browser): Save My Look → a Style Card the customer shares with her stylist → booking through the salon's own Booksy / Square / Fresha link. No accounts, no backend, nothing sent automatically. See `docs/PILOT.md`.
 
 | Path | What it is |
 |---|---|
@@ -15,13 +16,14 @@ Try **knotless braids, box braids, two-strand twists, locs and cornrows** on you
 | `docs/ARCHITECTURE.md` | How it works, the determinism contract, measured error budgets, known limits |
 | `docs/RESEARCH.md` | What open source can and cannot carry, with sources and a licence matrix |
 | `docs/BUILD.md` | Commands, test results, and the on-device checklist |
+| `docs/PILOT.md` | Salon pilot: configuration, customer journey, privacy boundaries, limits, demo script |
 
 ## Run the tests
 
 ```bash
 cd reference && python3 -m pytest                              # 64 — oracle
 cd web && npm install && bash tools/fetch-assets.sh && npm run build
-npm test && python3 test/e2e.py                                # 35 unit + 28 end-to-end checks
+npm test && npm run e2e                                        # 50 unit + 28 studio + 51 consultation checks
 cd ios/Packages/HairKit && swift test                          # 57 — on Linux add -Xlinker -lm
 ```
 

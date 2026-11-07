@@ -72,7 +72,10 @@ Her hair mask vs the style's silhouette at mask resolution (256 on the long side
 - **iPhone:** LOD1 shells in a RealityKit `LowLevelMesh` (buffer 0 position/normal/tangent rewritten per frame; uv0/uv1 static), `CustomMaterial` with `HairSurface.metal`: plait lobes from uv0, grooves, fibre streaks, ombré from a 64×1 gradient. Occluders: tracked face mesh + head ellipsoid (`OcclusionMaterial`).
 - **Browser:** LOD0 tubes when they fit the triangle budget (1.6 M desktop, 0.7 M touch devices), otherwise LOD1 with a plait bump map; MeshPhysicalMaterial with low sheen (off-black must read as off-black). Photo mode uses depth-only occluders (face, pressed skull, neck, shoulders) placed by MediaPipe's pose matrix (column-major, 63° vertical FOV, verified by reprojection: 4.8 px on the test render).
 
-### 3.8 Catalog
+### 3.8 Salon pilot (browser)
+`salon-config.js` validates one salon's services (existing style ids only, ≤ 5, https booking links); `style-card.js` turns the current look into a `StyleCardV1` (catalog-derived, image-free by validation); `consult-ui.js` handles Save My Look, sharing and the booking handoff without any network request. Direct booking exists only where the salon's config says so; nothing infers stylist approval. Details: `docs/PILOT.md`.
+
+### 3.9 Catalog
 `ios/Packages/HairKit/Sources/TryOnCore/Resources/catalog.json` is the single source for both platforms: five styles with sizes in cm (cornrows by row count), lengths (chin 12 cm, shoulder 22, armpit 34; mid-back and waist locked until a body capture exists), 15 braiding-hair colours (1, 1B, 2, 4, 30, 350, 27, 613, 99J, grey and five 1B ombrés), Monk skin tones, honesty thresholds. Captions for the stylist are word-for-word identical on both platforms (tested).
 
 ## 4. Frame budget (iPhone, 16.7 ms)
