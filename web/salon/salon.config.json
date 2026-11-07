@@ -5,7 +5,7 @@
   "isDemo": true,
   "demoNotice": "Demonstration salon. This business, its services and its booking links are fictional.",
   "booking": {
-    "providerName": "Booking page (demo)",
+    "providerName": "the demo booking page",
     "generalUrl": "https://example.com/book/crown-and-coil-demo"
   },
   "stylistInstructions": "Send your Style Card to the studio before booking anything marked Consultation first.",

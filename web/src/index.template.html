@@ -113,14 +113,62 @@ dialog h2 { font: 700 20px/1.1 var(--font-display); margin: 0 0 12px; }
 dialog .row { margin-top: 12px; justify-content: flex-end; }
 [hidden] { display: none !important; }
 
+/* Salon banner and the consultation card */
+.salon { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; background: var(--bg); }
+.salon strong { font: 600 14px/1.3 var(--font-body); }
+.salon p { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
+.tag { display: inline-block; font: 600 10.5px/1 var(--font-body); letter-spacing: .06em; text-transform: uppercase; border-radius: 999px; padding: 4px 7px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.tag.demo { border-color: color-mix(in srgb, var(--warn) 50%, transparent); color: var(--warn); }
+.tag.direct { border-color: color-mix(in srgb, var(--accent) 55%, transparent); color: var(--accent); }
+.chip .offered { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); align-self: center; }
+.chip[aria-pressed="true"] .offered { background: var(--bg); }
+.offered-dot { color: var(--accent); font-size: 9px; vertical-align: 1px; }
+#offered-key { font-family: var(--font-body); font-size: 11.5px; color: var(--muted); }
+.consult { display: flex; flex-direction: column; gap: 14px; border: 1px solid var(--line); border-radius: 14px; padding: 16px; background: var(--bg); animation: consult-in .22s ease-out; }
+@keyframes consult-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.consult:focus { outline: none; }
+.consult-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.consult h2 { margin: 0; font: 700 19px/1.15 var(--font-display); }
+.consult h3 { margin: 0; font: 600 12px/1 var(--font-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.consult h3 .hint { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.look-summary { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.look-summary span { font: 500 12.5px/1 var(--font-mono); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+.changed { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; background: var(--warn-soft); border-radius: 8px; padding: 8px 10px; }
+.field { display: grid; gap: 6px; }
+.field > label, .field legend { font-size: 13px; font-weight: 600; padding: 0; }
+.field fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 6px; }
+.field select, .field input[type=date], .field textarea { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 9px 10px; min-height: 42px; width: 100%; }
+.field textarea { min-height: 72px; resize: vertical; }
+.radio, .check { display: flex; gap: 9px; align-items: flex-start; font-size: 13.5px; cursor: pointer; }
+.radio input, .check input { width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--accent); flex: none; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.field select, .field input, .field textarea { min-width: 0; }
+@media (max-width: 420px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.count { font: 400 11.5px/1 var(--font-mono); color: var(--muted); justify-self: end; }
+.shared-list { margin: 0; padding-left: 18px; font-size: 13px; color: var(--muted); display: grid; gap: 3px; }
+.booking { border-radius: 10px; padding: 12px 14px; display: grid; gap: 8px; border: 1px solid var(--line); background: var(--surface); }
+.booking.direct { border-left: 4px solid var(--accent); }
+.booking.waiting { border-left: 4px solid var(--warn); }
+.booking strong { font-size: 14px; }
+.booking p { margin: 0; font-size: 13px; }
+a.btn { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.btn[aria-disabled="true"] { opacity: .5; pointer-events: none; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); font-weight: 500; padding-left: 0; }
+.btn.small { padding: 6px 10px; font-size: 13px; }
+.manual textarea { width: 100%; min-height: 160px; font: 400 12px/1.45 var(--font-mono); border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: var(--surface); color: var(--ink); }
+.manual summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.btn, .chip, .seg button, .views button { min-height: 40px; }
+@media (max-width: 760px) { .tones { grid-template-columns: repeat(5, 1fr); gap: 8px; } }
+
+
 @media (max-width: 760px) {
-  .app { grid-template-columns: 1fr; grid-template-rows: minmax(360px, 58vh) auto; height: auto; min-height: 100%; }
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(360px, 58vh) auto; height: auto; min-height: 100%; }
   .stage { order: -1; min-height: 360px; }
   .rail { border-right: 0; border-top: 1px solid var(--line); padding: 18px 16px 28px; overflow: visible; }
   .swatches { grid-template-columns: repeat(5, 1fr); }
   .status { max-width: 55%; }
 }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 <script type="importmap">
 { "imports": {
@@ -136,6 +184,13 @@ dialog .row { margin-top: 12px; justify-content: flex-end; }
       <h1>Braid Try-On Studio</h1>
       <p>Protective styles on a 3D bust or on your own photo, sized in centimetres with braiding-hair colour codes you can take to your stylist.</p>
     </header>
+
+    <div class="salon" id="salon" hidden>
+      <div>
+        <strong id="salon-name"></strong> <span class="tag demo" id="salon-demo" hidden>Demo</span>
+        <p id="salon-note"></p>
+      </div>
+    </div>
 
     <section class="group" aria-labelledby="mode-h">
       <h2 id="mode-h">Try it on</h2>
@@ -154,7 +209,7 @@ dialog .row { margin-top: 12px; justify-content: flex-end; }
     </section>
 
     <section class="group" aria-labelledby="style-h">
-      <h2 id="style-h">Style</h2>
+      <h2 id="style-h">Style <span class="val" id="offered-key" hidden><span class="offered-dot" aria-hidden="true">●</span> offered by this salon</span></h2>
       <div class="chips" id="styles" role="group" aria-labelledby="style-h"></div>
       <p class="hint" id="style-blurb"></p>
     </section>
@@ -196,13 +251,92 @@ dialog .row { margin-top: 12px; justify-content: flex-end; }
     <section class="group" aria-labelledby="cap-h">
       <h2 id="cap-h">Take it to your stylist</h2>
       <p class="caption" id="caption"></p>
-      <div class="row"><button class="btn primary" id="capture">Capture this look</button><button class="btn" id="copy-caption">Copy description</button></div>
+      <div class="row">
+        <button class="btn primary" id="save-look" type="button">Save My Look</button>
+        <button class="btn" id="capture" type="button">Capture this look</button>
+        <button class="btn" id="copy-caption" type="button">Copy description</button>
+      </div>
       <p class="hint" id="copy-status" role="status" aria-live="polite"></p>
+      <p class="hint">Previews are illustrations, not a guarantee of the finished style.</p>
+    </section>
+
+    <section class="consult" id="consult" hidden aria-labelledby="consult-h" tabindex="-1">
+      <div class="consult-head">
+        <h2 id="consult-h">Your Style Card</h2>
+        <span class="tag" id="booking-tag"></span>
+      </div>
+      <p class="look-summary" id="look-summary" aria-label="Saved look"></p>
+      <div class="changed" id="look-changed" hidden>
+        <span>You changed the look since saving it.</span>
+        <button class="btn small" id="update-look" type="button">Update my card</button>
+        <button class="btn small" id="restore-look" type="button">Back to saved look</button>
+      </div>
+
+      <form id="consult-form" class="group" novalidate>
+        <h3>Details for your stylist <span class="hint">(all optional)</span></h3>
+        <div class="two">
+          <div class="field">
+            <label for="pref-day">Preferred day</label>
+            <select id="pref-day">
+              <option value="">No preference</option>
+              <option value="any">Any day</option><option value="weekday">A weekday</option><option value="weekend">A weekend</option>
+              <option value="mon">Monday</option><option value="tue">Tuesday</option><option value="wed">Wednesday</option>
+              <option value="thu">Thursday</option><option value="fri">Friday</option><option value="sat">Saturday</option><option value="sun">Sunday</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="pref-date">Or a date</label>
+            <input type="date" id="pref-date">
+          </div>
+        </div>
+        <div class="field" id="supply-field">
+          <fieldset>
+            <legend>Braiding hair</legend>
+            <label class="radio"><input type="radio" name="supply" value="salon"> The salon provides it</label>
+            <label class="radio"><input type="radio" name="supply" value="own"> I will bring my own</label>
+            <label class="radio"><input type="radio" name="supply" value="unsure"> Not sure yet</label>
+          </fieldset>
+        </div>
+        <div class="field">
+          <label for="notes">Notes for your stylist</label>
+          <textarea id="notes" maxlength="300" placeholder="For example: middle part, a little shorter at the front"></textarea>
+          <span class="count" id="notes-count" aria-live="polite">0 / 300</span>
+        </div>
+        <label class="check"><input type="checkbox" id="ack"> I understand the preview is an illustration and not a guarantee of the finished style.</label>
+      </form>
+
+      <h3>Share With Stylist</h3>
+      <ul class="shared-list" id="shared-list">
+        <li>Shared: the style, size, length, colour code and your answers above.</li>
+        <li>Not shared: your photo. Only a captured image you choose below is ever included.</li>
+        <li>Nothing is sent until you choose an app or copy it yourself.</li>
+      </ul>
+      <label class="check" id="include-img-row" hidden><input type="checkbox" id="include-img"> <span>Also share my captured preview image. <span id="img-note"></span></span></label>
+      <div class="row">
+        <button class="btn primary" id="share-card" type="button">Share With Stylist</button>
+        <button class="btn" id="copy-card" type="button">Copy consultation</button>
+        <button class="btn" id="download-card" type="button">Download Style Card</button>
+      </div>
+      <p class="hint" id="gate-hint">Tick the box above to share or book.</p>
+      <p class="hint" id="share-status" role="status" aria-live="polite"></p>
+      <details class="manual" id="manual-copy">
+        <summary>Show the text to copy by hand</summary>
+        <textarea id="card-text" readonly aria-label="Style Card text"></textarea>
+      </details>
+
+      <div class="booking" id="booking">
+        <strong id="booking-title"></strong>
+        <p id="booking-body"></p>
+        <p id="booking-link-note" class="hint"></p>
+        <div class="row"><a class="btn primary" id="book-link" target="_blank" rel="noopener noreferrer external">Book Appointment</a></div>
+        <p class="hint" id="booking-status" role="status" aria-live="polite"></p>
+      </div>
+      <button class="btn ghost" id="delete-card" type="button">Delete saved look</button>
     </section>
 
     <ul class="notes">
       <li>Lengths stop at armpit: longer hair needs a body capture this version doesn't have.</li>
-      <li>Geometry is generated on your device. Nothing leaves this tab.</li>
+      <li>Styles are generated on your device and your photo never leaves this tab. The page loads its 3D and face-detection code from jsDelivr and fonts from Google Fonts.</li>
     </ul>
   </aside>
 

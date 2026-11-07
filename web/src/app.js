@@ -8,6 +8,9 @@ import { fitHead } from './headfit.js';
 import { runJob } from './worker.js';
 import * as T from './tryon.js';
 import { buildFaceParts } from './mesh-tools.js';
+import salonConfigRaw from '../salon/salon.config.json' with { type: 'json' };
+import { validateSalonConfig, NO_SALON } from './salon-config.js';
+import { createConsultation } from './consult-ui.js';
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -493,7 +496,7 @@ function hideNotice(kind) {
   if (!kind || els.banner.dataset.kind === kind) els.banner.hidden = true;
 }
 
-function chip(label, sub, pressed, onClick, { locked = false } = {}) {
+function chip(label, sub, pressed, onClick, { locked = false, offered = false } = {}) {
   const b = document.createElement('button');
   b.className = `chip${locked ? ' locked' : ''}`;
   b.type = 'button';
@@ -501,6 +504,13 @@ function chip(label, sub, pressed, onClick, { locked = false } = {}) {
   if (locked) {
     b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
     b.setAttribute('aria-label', `${label}, needs a body capture`);
+  }
+  if (offered) {
+    const dot = document.createElement('span');
+    dot.className = 'offered';
+    dot.setAttribute('aria-hidden', 'true');
+    b.append(dot);
+    b.setAttribute('aria-label', `${label}, offered by this salon`);
   }
   b.append(document.createTextNode(label));
   if (sub) {
@@ -519,7 +529,7 @@ function renderControls() {
     state.look = { ...state.look, style: s.id, size: s.defaultSize, length: s.defaultLength };
     renderControls();
     scheduleBuild();
-  })));
+  }, { offered: consult ? consult.isOffered(s.id) : false })));
   els.styleBlurb.textContent = style.blurb;
 
   const size = T.sizeOf(style, state.look.size);
@@ -578,6 +588,7 @@ function renderControls() {
   }));
 
   els.caption.textContent = T.caption(state.look);
+  if (consult) consult.lookChanged();
 }
 
 // ------------------------------------------------------------------ modes
@@ -895,6 +906,7 @@ function wrapText(g, text, maxW) {
 }
 
 let captureBlob = null;
+let captureSource = null; // 'photo' (may show the customer) or 'studio' (the 3D bust)
 async function capture() {
   renderer.render(scene, state.mode === 'photo' && state.photo ? photoCam : studioCam);
   const src = renderer.domElement;
@@ -928,6 +940,8 @@ async function capture() {
   g.font = `400 ${Math.round(fontPx * 0.72)}px "IBM Plex Mono", ui-monospace, monospace`;
   g.fillText('Preview from Braid Try-On Studio. Ask your stylist about hair amount and install time.', pad, h + pad + lines.length * fontPx * 1.35 + fontPx * 0.35);
   captureBlob = await new Promise((res) => out.toBlob(res, 'image/png'));
+  captureSource = state.mode === 'photo' && state.photo ? 'photo' : 'studio';
+  if (consult) consult.refresh();
   if (els.captureImg.src) URL.revokeObjectURL(els.captureImg.src);
   els.captureImg.src = URL.createObjectURL(captureBlob);
   els.captureHint.textContent = 'On a phone, press and hold the image to save it. On a computer, use Copy image.';
@@ -964,6 +978,22 @@ els.photoInput.addEventListener('change', () => {
 });
 for (const b of els.views.querySelectorAll('button')) b.addEventListener('click', () => setView(b.dataset.view));
 
+// Pilot salon: validated at startup; a broken config falls back to "no salon" so the studio still works.
+function loadSalon(raw) {
+  const { config, errors, warnings } = validateSalonConfig(raw, T.CATALOG);
+  for (const m of [...errors, ...warnings]) console.warn(`salon config: ${m}`);
+  return errors.length ? NO_SALON : config;
+}
+let consult = null;
+consult = createConsultation({
+  getLook: () => ({ ...state.look }),
+  setLook: (look) => { state.look = { ...state.look, ...look }; renderControls(); scheduleBuild(); },
+  getCapture: () => (captureBlob ? { blob: captureBlob, source: captureSource } : null),
+  onNotice: (text) => showNotice(text, { kind: 'info' }),
+});
+consult.setSalon(loadSalon(salonConfigRaw));
+consult.restoreSession();
+
 renderControls();
 applySkin();
 setView('three');
@@ -976,6 +1006,9 @@ window.__tryon = {
   state, T, BASE_HEAD,
   setLook: (look) => { state.look = { ...state.look, ...look }; renderControls(); scheduleBuild(); },
   loadPhotoBlob: (blob) => loadPhoto(blob),
+  // Pilot tests: swap the salon config (validated exactly as at startup) and read the current card.
+  setSalonConfig: (raw) => { consult.setSalon(loadSalon(raw)); renderControls(); },
+  get card() { return consult.card; },
   holeCount: parts.holeCount,
   // Render the studio view to a PNG (used by the end-to-end tests as a stand-in photo).
   // `selfie` renders like a phone front camera (63° vertical FOV, ~35 cm away), which is what

@@ -9,12 +9,16 @@
     "assets": "bash tools/fetch-assets.sh",
     "build": "node tools/build.mjs",
     "test": "node --test test/*.test.mjs",
-    "e2e": "python3 test/e2e.py"
+    "e2e": "python3 test/e2e.py && python3 test/e2e_consult.py",
+    "e2e:studio": "python3 test/e2e.py",
+    "e2e:consult": "python3 test/e2e_consult.py"
   },
   "devDependencies": {
     "esbuild": "0.28.2",
     "three": "0.186.1",
     "@mediapipe/tasks-vision": "1.0.1"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  }
 }
