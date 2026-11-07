@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "salonId": "demo-crown-and-coil",
+  "displayName": "Crown & Coil Studio",
+  "isDemo": true,
+  "demoNotice": "Demonstration salon. This business, its services and its booking links are fictional.",
+  "booking": {
+    "providerName": "Booking page (demo)",
+    "generalUrl": "https://example.com/book/crown-and-coil-demo"
+  },
+  "stylistInstructions": "Send your Style Card to the studio before booking anything marked Consultation first.",
+  "services": [
+    {
+      "styleId": "knotless_braids",
+      "serviceName": "Knotless braids",
+      "description": "Knotless braids in the size and length on your Style Card. The stylist confirms hair amount and time when you book.",
+      "bookingMode": "direct",
+      "serviceUrl": "https://example.com/book/crown-and-coil-demo/knotless-braids",
+      "serviceUrlVerified": true,
+      "askHairSupply": true
+    },
+    {
+      "styleId": "box_braids",
+      "serviceName": "Box braids",
+      "description": "Box braids with a small knot at each root, in the size and length on your Style Card.",
+      "bookingMode": "direct",
+      "askHairSupply": true
+    },
+    {
+      "styleId": "locs",
+      "serviceName": "Loc consultation",
+      "description": "Faux locs or a loc start. The stylist reviews your Style Card first.",
+      "bookingMode": "consultation",
+      "askHairSupply": true
+    },
+    {
+      "styleId": "cornrows",
+      "serviceName": "Cornrows",
+      "description": "Straight-back cornrows. Designs other than straight back need a consultation.",
+      "bookingMode": "consultation",
+      "askHairSupply": false
+    }
+  ]
+}
