@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Braid Try-On Studio</title>
+<meta name="description" content="Try knotless and box braids, twists, locs and cornrows on a 3D bust or your own photo, with part sizes in centimetres and braiding-hair colour codes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout: control rail beside a full-height stage; stacks stage-first at phone width. */
+:root {
+  --bg: #f2f0f3;
+  --surface: #ffffff;
+  --ink: #1d1620;
+  --muted: #675c6b;
+  --line: #e0d9e2;
+  --accent: #962658;
+  --accent-soft: #f6e3ec;
+  --accent-ink: #ffffff;
+  --stage-a: #ebe6ec;
+  --stage-b: #d6cdd8;
+  --warn: #9a4a07;
+  --warn-soft: #fdf0dc;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Figtree", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --radius: 10px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141016; --surface: #1d1720; --ink: #f2edf3; --muted: #a99dac; --line: #312834;
+    --accent: #e3729f; --accent-soft: #3a1d2b; --accent-ink: #1a0d14;
+    --stage-a: #261e29; --stage-b: #110d13; --warn: #f3b25a; --warn-soft: #3a2a12;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141016; --surface: #1d1720; --ink: #f2edf3; --muted: #a99dac; --line: #312834;
+  --accent: #e3729f; --accent-soft: #3a1d2b; --accent-ink: #1a0d14;
+  --stage-a: #261e29; --stage-b: #110d13; --warn: #f3b25a; --warn-soft: #3a2a12;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--font-body); -webkit-font-smoothing: antialiased; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { display: grid; grid-template-columns: minmax(300px, 380px) 1fr; height: 100%; }
+.rail { overflow-y: auto; padding: 22px 20px 28px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid var(--line); background: var(--surface); }
+.brand h1 { font: 700 26px/1.05 var(--font-display); letter-spacing: -0.01em; margin: 0 0 6px; text-wrap: balance; }
+.brand p { margin: 0; color: var(--muted); max-width: 40ch; }
+.group { display: flex; flex-direction: column; gap: 9px; }
+.group h2 { margin: 0; font: 600 12px/1 var(--font-body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.group h2 .val { font: 500 12px/1 var(--font-mono); letter-spacing: 0; text-transform: none; color: var(--ink); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 7px 12px; cursor: pointer; display: inline-flex; align-items: baseline; gap: 6px; transition: border-color .15s, background .15s; }
+.chip:hover { border-color: var(--muted); }
+.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.chip .sub { font: 400 12px/1 var(--font-mono); opacity: .75; }
+.chip.locked { color: var(--muted); border-style: dashed; }
+.chip.locked svg { width: 11px; height: 11px; align-self: center; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: var(--radius); padding: 3px; gap: 3px; }
+.seg button { border: 0; border-radius: 7px; padding: 8px; background: transparent; cursor: pointer; font-weight: 600; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.swatch { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 4px 4px 5px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; align-items: stretch; }
+.swatch .dot { height: 26px; border-radius: 5px; }
+.swatch .code { font: 500 11px/1 var(--font-mono); text-align: center; }
+.swatch[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.tones { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
+.tone { aspect-ratio: 1; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+.tone[aria-pressed="true"] { border-color: var(--accent); }
+.hint { margin: 0; font-size: 13px; color: var(--muted); }
+.file-btn { display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px dashed var(--muted); border-radius: var(--radius); padding: 11px; cursor: pointer; font-weight: 600; }
+.file-btn:hover { border-color: var(--accent); color: var(--accent); }
+.file-btn input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.sliders { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; align-items: center; font-size: 13px; }
+.sliders input[type=range] { width: 100%; accent-color: var(--accent); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); padding: 9px 14px; cursor: pointer; font-weight: 600; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn:disabled { opacity: .5; cursor: default; }
+.caption { font: 400 12.5px/1.5 var(--font-mono); background: var(--bg); border-radius: 8px; padding: 10px 12px; margin: 0; }
+.notes { font-size: 12.5px; color: var(--muted); margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+
+.stage { position: relative; min-height: 0; background: radial-gradient(120% 90% at 50% 35%, var(--stage-a), var(--stage-b)); display: flex; flex-direction: column; }
+.viewport-wrap { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; overflow: hidden; }
+.viewport { position: relative; width: 100%; height: 100%; touch-action: none; }
+.viewport.photo { width: auto; height: auto; }
+.viewport img, .viewport canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.viewport #overlay { pointer-events: none; mix-blend-mode: normal; }
+.hud { position: absolute; left: 16px; right: 16px; top: 14px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; pointer-events: none; }
+.hud > * { pointer-events: auto; }
+.views { display: flex; gap: 4px; background: color-mix(in srgb, var(--surface) 82%, transparent); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+.views button { border: 0; background: transparent; border-radius: 999px; padding: 6px 11px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.views button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.status { font: 500 12px/1.3 var(--font-mono); background: color-mix(in srgb, var(--surface) 82%, transparent); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-variant-numeric: tabular-nums; max-width: 60%; }
+.banner { position: absolute; left: 16px; right: 16px; bottom: 16px; display: flex; gap: 12px; align-items: flex-start; background: var(--warn-soft); color: var(--ink); border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent); border-left: 4px solid var(--warn); border-radius: var(--radius); padding: 11px 14px; font-size: 13.5px; max-width: 720px; margin: 0 auto; }
+.banner strong { color: var(--warn); }
+.banner.info { background: color-mix(in srgb, var(--surface) 90%, transparent); border-color: var(--line); border-left-color: var(--accent); }
+.banner.info strong { color: var(--accent); }
+.progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: transparent; }
+.progress span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .1s linear; }
+
+dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); padding: 18px; width: min(560px, calc(100% - 32px)); }
+dialog::backdrop { background: rgb(10 6 12 / .55); }
+dialog img { width: 100%; border-radius: 8px; display: block; }
+dialog h2 { font: 700 20px/1.1 var(--font-display); margin: 0 0 12px; }
+dialog .row { margin-top: 12px; justify-content: flex-end; }
+[hidden] { display: none !important; }
+
+@media (max-width: 760px) {
+  .app { grid-template-columns: 1fr; grid-template-rows: minmax(360px, 58vh) auto; height: auto; min-height: 100%; }
+  .stage { order: -1; min-height: 360px; }
+  .rail { border-right: 0; border-top: 1px solid var(--line); padding: 18px 16px 28px; overflow: visible; }
+  .swatches { grid-template-columns: repeat(5, 1fr); }
+  .status { max-width: 55%; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div class="app">
+  <aside class="rail" aria-label="Try-on controls">
+    <header class="brand">
+      <h1>Braid Try-On Studio</h1>
+      <p>Protective styles on a 3D bust or on your own photo, sized in centimetres with braiding-hair colour codes you can take to your stylist.</p>
+    </header>
+
+    <section class="group" aria-labelledby="mode-h">
+      <h2 id="mode-h">Try it on</h2>
+      <div class="seg" role="group" aria-label="Mode">
+        <button id="mode-studio" aria-pressed="true">3D bust</button>
+        <button id="mode-photo" aria-pressed="false">Your photo</button>
+      </div>
+      <div id="photo-pick" class="group" hidden>
+        <label class="file-btn" for="photo-input">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h3l2-3h6l2 3h3v13H4z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span id="photo-btn-label">Choose a front-facing photo</span>
+          <input id="photo-input" type="file" accept="image/*">
+        </label>
+        <p class="hint">Face the camera with your hair pulled back or under a wrap. Your photo stays in this browser tab and is never uploaded.</p>
+      </div>
+    </section>
+
+    <section class="group" aria-labelledby="style-h">
+      <h2 id="style-h">Style</h2>
+      <div class="chips" id="styles" role="group" aria-labelledby="style-h"></div>
+      <p class="hint" id="style-blurb"></p>
+    </section>
+
+    <section class="group" aria-labelledby="size-h">
+      <h2 id="size-h">Size <span class="val" id="size-val"></span></h2>
+      <div class="chips" id="sizes" role="group" aria-labelledby="size-h"></div>
+    </section>
+
+    <section class="group" aria-labelledby="length-h">
+      <h2 id="length-h">Length <span class="val" id="length-val"></span></h2>
+      <div class="chips" id="lengths" role="group" aria-labelledby="length-h"></div>
+    </section>
+
+    <section class="group" aria-labelledby="color-h">
+      <h2 id="color-h">Colour <span class="val" id="color-val"></span></h2>
+      <div class="swatches" id="colors" role="group" aria-labelledby="color-h"></div>
+    </section>
+
+    <section class="group" id="skin-sec" aria-labelledby="skin-h">
+      <h2 id="skin-h">Bust skin tone <span class="val" id="skin-val"></span></h2>
+      <div class="tones" id="tones" role="group" aria-labelledby="skin-h"></div>
+      <p class="hint">Monk Skin Tone scale, 1 to 10.</p>
+    </section>
+
+    <section class="group" id="fit-sec" aria-labelledby="fit-h" hidden>
+      <h2 id="fit-h">Adjust the fit</h2>
+      <p class="hint" id="fit-hint">Drag on the photo to move the hair. Fine-tune here.</p>
+      <div class="sliders">
+        <label for="fit-x">Left/right</label><input id="fit-x" type="range" min="-12" max="12" step="0.1" value="0">
+        <label for="fit-y">Up/down</label><input id="fit-y" type="range" min="-12" max="12" step="0.1" value="0">
+        <label for="fit-s">Size</label><input id="fit-s" type="range" min="0.8" max="1.25" step="0.01" value="1">
+        <label for="fit-r">Tilt</label><input id="fit-r" type="range" min="-25" max="25" step="0.5" value="0">
+        <label for="fit-t">Turn</label><input id="fit-t" type="range" min="-35" max="35" step="0.5" value="0">
+      </div>
+      <div class="row"><button class="btn" id="fit-reset">Reset fit</button></div>
+    </section>
+
+    <section class="group" aria-labelledby="cap-h">
+      <h2 id="cap-h">Take it to your stylist</h2>
+      <p class="caption" id="caption"></p>
+      <div class="row"><button class="btn primary" id="capture">Capture this look</button><button class="btn" id="copy-caption">Copy description</button></div>
+      <p class="hint" id="copy-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <ul class="notes">
+      <li>Lengths stop at armpit: longer hair needs a body capture this version doesn't have.</li>
+      <li>Geometry is generated on your device. Nothing leaves this tab.</li>
+    </ul>
+  </aside>
+
+  <main class="stage" aria-label="Preview">
+    <div class="viewport-wrap" id="wrap">
+      <div class="viewport" id="viewport">
+        <img id="photo" alt="Your photo" hidden>
+        <canvas id="gl" aria-label="3D preview of the selected style"></canvas>
+        <canvas id="overlay" hidden aria-hidden="true"></canvas>
+      </div>
+    </div>
+    <div class="hud">
+      <div class="views" id="views" role="group" aria-label="Camera">
+        <button data-view="front" aria-pressed="false">Front</button>
+        <button data-view="three" aria-pressed="true">¾</button>
+        <button data-view="side" aria-pressed="false">Side</button>
+        <button data-view="back" aria-pressed="false">Back</button>
+      </div>
+      <div class="status" id="status" role="status" aria-live="polite">Loading the 3D engine…</div>
+    </div>
+    <div class="banner" id="banner" hidden role="status" aria-live="polite"></div>
+    <div class="progress" aria-hidden="true"><span id="progress"></span></div>
+  </main>
+</div>
+
+<dialog id="capture-dialog" aria-labelledby="cap-dialog-h">
+  <h2 id="cap-dialog-h">Your look</h2>
+  <img id="capture-img" alt="Captured look with its description">
+  <p class="hint" id="capture-hint">On a phone, press and hold the image to save it.</p>
+  <div class="row">
+    <button class="btn" id="capture-copy">Copy image</button>
+    <button class="btn primary" id="capture-close">Done</button>
+  </div>
+</dialog>
+<!--APP-->
+</body>
+</html>

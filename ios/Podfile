@@ -1,0 +1,9 @@
+# MediaPipe Tasks Vision (ImageSegmenter) for the hair / skin masks.
+platform :ios, '18.0'
+# Dynamic frameworks, as in MediaPipe's own iOS samples: static linkage can drop the graph
+# calculators' registration (-force_load), and ImageSegmenter then fails with "No registered calculator".
+use_frameworks!
+
+target 'HairTryOn' do
+  pod 'MediaPipeTasksVision', '~> 0.10'
+end

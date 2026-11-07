@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "note": "Single source of truth for the iOS app (TryOnCore.Catalog) and the browser studio (web/src/tryon.js). Widths and lengths are metres; colours are sRGB hex. Braiding-hair colour codes follow the industry numbering used on pre-stretched braiding hair packs.",
+  "styles": [
+    {
+      "id": "knotless_braids", "kind": "knotless_braids", "name": "Knotless braids",
+      "blurb": "Starts with your own hair at the root and feeds in, so the base is flat and light on the scalp.",
+      "sizes": [
+        { "id": "small", "label": "Small", "width": 0.012 },
+        { "id": "medium", "label": "Medium", "width": 0.018 },
+        { "id": "large", "label": "Large", "width": 0.024 },
+        { "id": "jumbo", "label": "Jumbo", "width": 0.032 }
+      ],
+      "defaultSize": "medium", "defaultLength": "armpit"
+    },
+    {
+      "id": "box_braids", "kind": "box_braids", "name": "Box braids",
+      "blurb": "Square parts with a small knot at each root; the classic three-strand plait.",
+      "sizes": [
+        { "id": "small", "label": "Small", "width": 0.012 },
+        { "id": "medium", "label": "Medium", "width": 0.018 },
+        { "id": "large", "label": "Large", "width": 0.024 },
+        { "id": "jumbo", "label": "Jumbo", "width": 0.032 }
+      ],
+      "defaultSize": "medium", "defaultLength": "armpit"
+    },
+    {
+      "id": "two_strand_twists", "kind": "two_strand_twists", "name": "Two-strand twists",
+      "blurb": "Two strands wrapped around each other; softer and rounder than a plait.",
+      "sizes": [
+        { "id": "small", "label": "Small", "width": 0.012 },
+        { "id": "medium", "label": "Medium", "width": 0.018 },
+        { "id": "large", "label": "Large", "width": 0.026 }
+      ],
+      "defaultSize": "medium", "defaultLength": "shoulder"
+    },
+    {
+      "id": "locs", "kind": "locs", "name": "Locs",
+      "blurb": "Single ropes with natural thickness variation, for faux locs or a preview of your own.",
+      "sizes": [
+        { "id": "micro", "label": "Micro", "width": 0.010 },
+        { "id": "medium", "label": "Medium", "width": 0.018 },
+        { "id": "large", "label": "Large", "width": 0.026 }
+      ],
+      "defaultSize": "medium", "defaultLength": "shoulder"
+    },
+    {
+      "id": "cornrows", "kind": "cornrows", "name": "Cornrows",
+      "blurb": "Straight-back rows braided flat to the scalp, with the tails left loose at the nape.",
+      "sizes": [
+        { "id": "small", "label": "14 rows", "width": 0.012, "rows": 14 },
+        { "id": "medium", "label": "10 rows", "width": 0.018, "rows": 10 },
+        { "id": "large", "label": "6 rows", "width": 0.026, "rows": 6 }
+      ],
+      "defaultSize": "medium", "defaultLength": "shoulder"
+    }
+  ],
+  "lengths": [
+    { "id": "chin", "label": "Chin", "length": 0.12 },
+    { "id": "shoulder", "label": "Shoulder", "length": 0.22 },
+    { "id": "armpit", "label": "Armpit", "length": 0.34 },
+    { "id": "mid_back", "label": "Mid-back", "length": 0.55, "requiresBody": true },
+    { "id": "waist", "label": "Waist", "length": 0.75, "requiresBody": true }
+  ],
+  "lockedLengthMessage": "{label} length needs a body capture, which this version can't capture yet. Armpit length is the longest available.",
+  "colors": [
+    { "id": "1", "label": "1", "name": "Jet black", "hex": "#0c0b0b" },
+    { "id": "1B", "label": "1B", "name": "Off black", "hex": "#1b1613" },
+    { "id": "2", "label": "2", "name": "Darkest brown", "hex": "#2b1d16" },
+    { "id": "4", "label": "4", "name": "Medium brown", "hex": "#4a2e21" },
+    { "id": "30", "label": "30", "name": "Light auburn", "hex": "#88442a" },
+    { "id": "350", "label": "350", "name": "Copper", "hex": "#a4461f" },
+    { "id": "27", "label": "27", "name": "Honey blonde", "hex": "#b7783f" },
+    { "id": "613", "label": "613", "name": "Platinum blonde", "hex": "#e0cb98" },
+    { "id": "99J", "label": "99J", "name": "Burgundy", "hex": "#4a1424" },
+    { "id": "grey", "label": "Grey", "name": "Silver grey", "hex": "#9d9a96" },
+    { "id": "1B/27", "label": "1B/27", "name": "Off black to honey blonde", "hex": "#1b1613", "tipHex": "#b7783f" },
+    { "id": "1B/30", "label": "1B/30", "name": "Off black to light auburn", "hex": "#1b1613", "tipHex": "#88442a" },
+    { "id": "1B/350", "label": "1B/350", "name": "Off black to copper", "hex": "#1b1613", "tipHex": "#a4461f" },
+    { "id": "1B/613", "label": "1B/613", "name": "Off black to platinum", "hex": "#1b1613", "tipHex": "#e0cb98" },
+    { "id": "1B/grey", "label": "1B/Grey", "name": "Off black to silver grey", "hex": "#1b1613", "tipHex": "#9d9a96" }
+  ],
+  "ombre": { "start": 0.42, "end": 0.78 },
+  "skinTones": [
+    { "id": "mst1", "label": "1", "hex": "#f6ede4" },
+    { "id": "mst2", "label": "2", "hex": "#f3e7db" },
+    { "id": "mst3", "label": "3", "hex": "#f7ead0" },
+    { "id": "mst4", "label": "4", "hex": "#eadaba" },
+    { "id": "mst5", "label": "5", "hex": "#d7bd96" },
+    { "id": "mst6", "label": "6", "hex": "#a07e56" },
+    { "id": "mst7", "label": "7", "hex": "#825c43" },
+    { "id": "mst8", "label": "8", "hex": "#604134" },
+    { "id": "mst9", "label": "9", "hex": "#3a312a" },
+    { "id": "mst10", "label": "10", "hex": "#292420" }
+  ],
+  "defaults": { "style": "knotless_braids", "color": "1B", "skinTone": "mst8" },
+  "honesty": { "enter": 0.12, "exit": 0.08, "wrapped": 0.05, "maskThreshold": 0.5 }
+}

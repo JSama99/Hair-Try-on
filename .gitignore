@@ -1,0 +1,13 @@
+# build output and fetched, pinned assets (re-created by the scripts; hashes in the lock files)
+web/node_modules/
+web/dist/
+web/assets/
+ios/App/Resources/Models/*.tflite
+ios/Packages/HairKit/.build/
+ios/HairTryOn.xcodeproj/
+ios/HairTryOn.xcworkspace/
+ios/Pods/
+ios/Podfile.lock
+__pycache__/
+.pytest_cache/
+.DS_Store

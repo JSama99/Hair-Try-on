@@ -1,0 +1,49 @@
+# XcodeGen spec: `bash scripts/bootstrap.sh` generates HairTryOn.xcodeproj and installs pods.
+name: HairTryOn
+options:
+  bundleIdPrefix: com.talonsight
+  deploymentTarget:
+    iOS: "18.0"
+  postGenCommand: pod install
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    DEVELOPMENT_TEAM: ""   # set your team before running on a device
+    TARGETED_DEVICE_FAMILY: "1"
+    ENABLE_USER_SCRIPT_SANDBOXING: NO   # CocoaPods' framework copy scripts write outside the sandbox
+packages:
+  HairKit:
+    path: Packages/HairKit
+targets:
+  HairTryOn:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+        excludes:
+          - "Resources/Models/models.lock"
+          - "Resources/Models/README.md"
+    dependencies:
+      - package: HairKit
+        product: HairKit
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Hair Try-On
+        UILaunchScreen: {}
+        UIRequiredDeviceCapabilities: [arkit]
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        NSCameraUsageDescription: "The camera shows the style on your own head, live. Video never leaves your phone."
+        NSPhotoLibraryAddUsageDescription: "Save captured looks to your photo library."
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.talonsight.hairtryon
+        MTL_FAST_MATH: YES
+schemes:
+  HairTryOn:
+    build:
+      targets:
+        HairTryOn: all
+    test:
+      targets: []

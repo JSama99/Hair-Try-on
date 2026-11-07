@@ -1,0 +1,4 @@
+# Segmentation models bundled with the app (fetched by scripts/fetch-models.sh, verified by SHA-256).
+# file  sha256  google-url  npm-fallback(package@version:path)
+selfie_multiclass_256x256.tflite c6748b1253a99067ef71f7e26ca71096cd449baefa8f101900ea23016507e0e0 https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite mtr-hair-segmentation@1.0.0:dist/selfie_multiclass_256x256.tflite
+hair_segmenter.tflite 2628cf3ce5f695f604cbea2841e00befcaa3624bf80caf3664bef2656d59bf84 https://storage.googleapis.com/mediapipe-models/image_segmenter/hair_segmenter/float32/latest/hair_segmenter.tflite mtr-hair-segmentation@1.0.0:dist/hair_segmenter.tflite

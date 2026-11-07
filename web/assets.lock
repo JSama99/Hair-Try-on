@@ -1,0 +1,6 @@
+# Pinned ML assets for the browser studio: served from the page's own files.
+# Served as .bin: the artifact host serves standard web media types only, and MediaPipe reads the bytes, not the name.
+# path-in-dist  sha256  npm-package@version  path-in-package  licence
+models/face_landmarker.bin 64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff mediapipe-nodejs@1.2.1 public/saved_models/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task Apache-2.0 (MediaPipe model card)
+models/hair_segmenter.bin 2628cf3ce5f695f604cbea2841e00befcaa3624bf80caf3664bef2656d59bf84 mtr-hair-segmentation@1.0.0 dist/hair_segmenter.tflite Apache-2.0 (MediaPipe model card)
+mediapipe/vision_wasm_internal.wasm 8da277a733926eacd0474b8704b36742d6ec3231c57a860c5b889dff8f1df886 @mediapipe/tasks-vision@1.0.1 wasm/vision_wasm_internal.wasm Apache-2.0
