@@ -8,7 +8,7 @@ What exists, and how far each part is verified:
 | Part | Where | State |
 |---|---|---|
 | Reference generator (the oracle) | `reference/protostyle` | Python, 64 tests incl. golden, mutation and property tests |
-| Browser studio | `web/` | built, unit + end-to-end tested, published as an artifact |
+| Browser studio | `web/` | built, unit + end-to-end tested (four browser suites), self-contained and offline-capable |
 | Core library (generator port, head fit, physics, try-on logic) | `ios/Packages/HairKit` | Swift 6, compiled and tested on Linux |
 | iOS app (ARKit, RealityKit, MediaPipe) | `ios/App` | written against the iOS 18 SDK, **not compiled here** (no iOS SDK in this environment) — `docs/BUILD.md` |
 
@@ -75,7 +75,16 @@ Her hair mask vs the style's silhouette at mask resolution (256 on the long side
 ### 3.8 Salon pilot (browser)
 `salon-config.js` validates one salon's services (existing style ids only, ≤ 5, https booking links); `style-card.js` turns the current look into a `StyleCardV1` (catalog-derived, image-free by validation); `consult-ui.js` handles Save My Look, sharing and the booking handoff without any network request. Direct booking exists only where the salon's config says so; nothing infers stylist approval. Details: `docs/PILOT.md`.
 
-### 3.9 Catalog
+### 3.9 Live mirror (browser)
+`live.js` opens the front camera and runs the Face Landmarker in VIDEO mode on each new video frame; the pose matrix goes through a 1€ filter (translation, scale, hemisphere-continuous quaternion). In this mode the worker returns LOD1 shells plus simulation chains, and `hairsim.js` (the twin of §3.5: same pass order, same kernels as the generator, fixed steps, capped per frame) advances them from the pose and re-skins the shells into the GPU buffers each frame. Dense styles use a coarser time step, and a governor drops steps when the solver alone exceeds 12 ms. A hair mask is taken every 1.5 s for the honesty check; Match my hairline takes a fresh mask and the same frame's pose. The picture is mirrored for display and for captures. The camera stops when the mode, the tab or the page is left. Verified with a synthetic camera film in Chromium; **not yet measured on phones**.
+
+### 3.10 Self-contained delivery
+The build bundles three.js and copies MediaPipe, fonts and models into `dist/`; nothing is fetched from another host. A CSP `<meta>` (script by hash, `connect-src 'self'`, `form-action 'none'`) makes the browser enforce that. A service worker precaches the page's own files (cache-first; `salon.config.json` network-first), so the studio, photo mode and live mirror work offline after the first visit.
+
+### 3.11 Links, My looks, stylist view, salon setup
+`look-link.js` encodes a look as `#look=1~style~size~length~colour` (URL fragment, validated against the catalog, locked lengths refused) and keeps up to 12 looks in `localStorage` (ids only). `extras-ui.js` draws the QR code on the device (`uqr`) and opens a customer's Style Card for the stylist through the existing validator. `setup.html` builds `salon.config.json` from a form with the same validator; the studio fetches that file beside the page at run time, so settings change without a rebuild.
+
+### 3.12 Catalog
 `ios/Packages/HairKit/Sources/TryOnCore/Resources/catalog.json` is the single source for both platforms: five styles with sizes in cm (cornrows by row count), lengths (chin 12 cm, shoulder 22, armpit 34; mid-back and waist locked until a body capture exists), 15 braiding-hair colours (1, 1B, 2, 4, 30, 350, 27, 613, 99J, grey and five 1B ombrés), Monk skin tones, honesty thresholds. Captions for the stylist are word-for-word identical on both platforms (tested).
 
 ## 4. Frame budget (iPhone, 16.7 ms)
@@ -128,4 +137,5 @@ Dependency rule: ProtoStyle depends on nothing; only the app imports ARKit/Reali
 4. Segmentation fairness by Monk band and curl pattern is unmeasured (the public model card reports a ~10-point IoU drop at MST 9–10 for the multiclass model, not broken out for hair).
 5. Photo hairline estimate: ±0.1 rad; thick hair at the hairline biases it toward the crown.
 6. iOS app code is uncompiled here; on-device checks are listed in `docs/BUILD.md`.
-7. The browser studio's automatic fit needs the host to allow WebAssembly compilation; otherwise it falls back to placing the style by hand (tested).
+7. The live mirror has been verified in desktop Chromium with a synthetic camera, not on phones; gravity assumes an upright device.
+8. The browser studio's automatic fit needs the host to allow WebAssembly compilation; otherwise it falls back to placing the style by hand (tested).

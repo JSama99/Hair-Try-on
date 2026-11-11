@@ -131,6 +131,7 @@ export function createConsultation({ getLook, setLook, getCapture, onNotice }) {
     el.summary.replaceChildren(...bits.map((b) => { const span = document.createElement('span'); span.textContent = b; return span; }));
     el.supplyField.hidden = !(bookingPlan(salon, s.id).service ? bookingPlan(salon, s.id).service.askHairSupply : true);
     el.text.value = cardToText(card, salon);
+    el.consult.dataset.print = el.text.value; // the print stylesheet prints this text (Print or Save as PDF)
 
     const cap = getCapture();
     el.includeRow.hidden = !cap;
@@ -269,6 +270,7 @@ export function createConsultation({ getLook, setLook, getCapture, onNotice }) {
     el.consult.hidden = true;
     el.manual.open = false;
     el.text.value = '';
+    delete el.consult.dataset.print;
     persist();
     el.save.focus();
     onNotice('Saved look deleted from this browser.');

@@ -5,10 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Braid Try-On Studio</title>
 <meta name="description" content="Try knotless and box braids, twists, locs and cornrows on a 3D bust or your own photo, with part sizes in centimetres and braiding-hair colour codes.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!--HEAD-->
 <style>
+/*FONTS*/
 /* Layout: control rail beside a full-height stage; stacks stage-first at phone width. */
 :root {
   --bg: #f2f0f3;
@@ -62,8 +61,9 @@ button, input { font: inherit; color: inherit; }
 .chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
 .chip .sub { font: 400 12px/1 var(--font-mono); opacity: .75; }
 .chip.locked { color: var(--muted); border-style: dashed; }
+.chip.locked .sub { opacity: 1; }
 .chip.locked svg { width: 11px; height: 11px; align-self: center; }
-.seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: var(--radius); padding: 3px; gap: 3px; }
+.seg { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); grid-auto-flow: column; border: 1px solid var(--line); border-radius: var(--radius); padding: 3px; gap: 3px; }
 .seg button { border: 0; border-radius: 7px; padding: 8px; background: transparent; cursor: pointer; font-weight: 600; }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 .swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
@@ -168,14 +168,38 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; justif
   .swatches { grid-template-columns: repeat(5, 1fr); }
   .status { max-width: 55%; }
 }
+
+.steps { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.steps li { flex: 1; display: flex; align-items: center; gap: 6px; background: var(--bg); border-radius: 8px; padding: 7px 8px; line-height: 1.2; }
+.steps b { flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font: 600 11px/20px var(--font-mono); text-align: center; }
+.viewing { display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; background: var(--accent-soft); border: 1px solid var(--accent); border-radius: var(--radius); padding: 10px 12px; font-size: 13px; }
+.viewing p { margin: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 400 12px/1.5 var(--font-mono); }
+.book { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.book li { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 8px; padding: 4px 4px 4px 10px; background: var(--surface); }
+.book .apply { flex: 1; min-width: 0; text-align: left; background: none; border: 0; padding: 6px 0; font: 500 13px/1.3 var(--font-body); color: var(--ink); cursor: pointer; display: flex; align-items: center; gap: 8px; min-height: 40px; }
+.book .apply[aria-current="true"] { color: var(--accent); }
+.book .dot { flex: none; width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--line); }
+.book .remove { flex: none; width: 40px; height: 40px; border: 0; background: none; color: var(--muted); font-size: 18px; cursor: pointer; border-radius: 8px; }
+.book .remove:hover, .book .apply:hover { background: var(--bg); }
+.stylist { border: 1px dashed var(--line); border-radius: var(--radius); padding: 10px 12px; display: grid; gap: 8px; }
+.stylist summary { cursor: pointer; font-weight: 600; font-size: 13px; }
+.stylist textarea, #link-url { width: 100%; font: 400 12px/1.4 var(--font-mono); border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: var(--surface); color: var(--ink); }
+.file-btn.small { padding: 8px 12px; font-size: 13px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.qr { width: min(240px, 70vw); height: min(240px, 70vw); margin: 4px auto 12px; background: #fff; border-radius: 8px; padding: 10px; }
+.qr svg { width: 100%; height: 100%; display: block; }
+#cam { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; }
+.viewport.mirror { transform: scaleX(-1); }
+#compare { touch-action: none; user-select: none; -webkit-user-select: none; }
+#compare[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.seg button { padding-left: 6px; padding-right: 6px; }
+@media print {
+  .stage, .rail > *:not(#consult), #consult .row, #consult form, #consult .changed, #consult .manual, #delete-card, #include-img-row, #gate-hint, dialog { display: none !important; }
+  .app { display: block; height: auto; } .rail { border: 0; overflow: visible; }
+  #consult::after { content: attr(data-print); white-space: pre-wrap; display: block; font: 400 12pt/1.5 var(--font-mono); margin-top: 12pt; }
+}
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
-<script type="importmap">
-{ "imports": {
-  "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
-  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
-} }
-</script>
 </head>
 <body>
 <div class="app">
@@ -184,6 +208,20 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; justif
       <h1>Braid Try-On Studio</h1>
       <p>Protective styles on a 3D bust or on your own photo, sized in centimetres with braiding-hair colour codes you can take to your stylist.</p>
     </header>
+
+    <ol class="steps" aria-label="How it works">
+      <li><b>1</b> Pick a style</li>
+      <li><b>2</b> See it on you</li>
+      <li><b>3</b> Send it to your stylist</li>
+    </ol>
+
+    <div class="viewing" id="viewing" hidden role="status">
+      <div>
+        <strong>Viewing a customer's Style Card</strong>
+        <p id="viewing-details"></p>
+      </div>
+      <button class="btn small" id="viewing-close" type="button">Close card</button>
+    </div>
 
     <div class="salon" id="salon" hidden>
       <div>
@@ -197,6 +235,14 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; justif
       <div class="seg" role="group" aria-label="Mode">
         <button id="mode-studio" aria-pressed="true">3D bust</button>
         <button id="mode-photo" aria-pressed="false">Your photo</button>
+        <button id="mode-live" aria-pressed="false">Live mirror</button>
+      </div>
+      <div id="live-pick" class="group" hidden>
+        <div class="row">
+          <button class="btn primary" id="live-start" type="button">Turn on the camera</button>
+          <button class="btn" id="live-hairline" type="button" hidden>Match my hairline</button>
+        </div>
+        <p class="hint" id="live-hint">Your camera picture is analysed on this device, frame by frame. Nothing is recorded or sent anywhere, and the camera turns off when you leave this mode.</p>
       </div>
       <div id="photo-pick" class="group" hidden>
         <label class="file-btn" for="photo-input">
@@ -255,6 +301,7 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; justif
         <button class="btn primary" id="save-look" type="button">Save My Look</button>
         <button class="btn" id="capture" type="button">Capture this look</button>
         <button class="btn" id="copy-caption" type="button">Copy description</button>
+        <button class="btn" id="look-link" type="button">Link and QR code</button>
       </div>
       <p class="hint" id="copy-status" role="status" aria-live="polite"></p>
       <p class="hint">Previews are illustrations, not a guarantee of the finished style.</p>
@@ -334,9 +381,31 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; justif
       <button class="btn ghost" id="delete-card" type="button">Delete saved look</button>
     </section>
 
+    <section class="group" aria-labelledby="book-h">
+      <h2 id="book-h">My looks <span class="val" id="book-count"></span></h2>
+      <div class="row">
+        <button class="btn" id="book-add" type="button">Keep this look</button>
+        <button class="btn ghost" id="book-clear" type="button" hidden>Clear all</button>
+      </div>
+      <ul class="book" id="book"></ul>
+      <p class="hint" id="book-hint" role="status" aria-live="polite">Kept in this browser only: the style, size, length and colour. Never a photo.</p>
+    </section>
+
+    <details class="stylist" id="stylist">
+      <summary>For stylists: open a customer's Style Card</summary>
+      <p class="hint">Open the <code>.json</code> Style Card a customer sent you, or paste its text, to see her exact look in 3D. It is read on this device and not stored.</p>
+      <div class="row">
+        <label class="file-btn small" for="card-file"><span>Open a Style Card file</span><input id="card-file" type="file" accept="application/json,.json"></label>
+      </div>
+      <label for="card-paste" class="hint">Or paste the Style Card JSON</label>
+      <textarea id="card-paste" rows="3" spellcheck="false"></textarea>
+      <div class="row"><button class="btn" id="card-open" type="button">Open pasted card</button></div>
+      <p class="hint" id="card-status" role="status" aria-live="polite"></p>
+    </details>
+
     <ul class="notes">
       <li>Lengths stop at armpit: longer hair needs a body capture this version doesn't have.</li>
-      <li>Styles are generated on your device and your photo never leaves this tab. The page loads its 3D and face-detection code from jsDelivr and fonts from Google Fonts.</li>
+      <li>Styles are generated on your device, and your photo or camera picture never leaves this tab. <span id="net-note">This page loads nothing from other websites.</span> <span id="offline-note" hidden>It is saved on this device and works offline.</span></li>
     </ul>
   </aside>
 
@@ -344,6 +413,7 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; justif
     <div class="viewport-wrap" id="wrap">
       <div class="viewport" id="viewport">
         <img id="photo" alt="Your photo" hidden>
+        <video id="cam" playsinline muted hidden aria-label="Your camera, mirrored"></video>
         <canvas id="gl" aria-label="3D preview of the selected style"></canvas>
         <canvas id="overlay" hidden aria-hidden="true"></canvas>
       </div>
@@ -355,6 +425,7 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; justif
         <button data-view="side" aria-pressed="false">Side</button>
         <button data-view="back" aria-pressed="false">Back</button>
       </div>
+      <button class="btn small" id="compare" type="button" hidden aria-pressed="false" title="Hold to see yourself without the style">Hold to compare</button>
       <div class="status" id="status" role="status" aria-live="polite">Loading the 3D engine…</div>
     </div>
     <div class="banner" id="banner" hidden role="status" aria-live="polite"></div>
@@ -369,6 +440,17 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; justif
   <div class="row">
     <button class="btn" id="capture-copy">Copy image</button>
     <button class="btn primary" id="capture-close">Done</button>
+  </div>
+</dialog>
+<dialog id="link-dialog" aria-labelledby="link-h">
+  <h2 id="link-h">This look as a link</h2>
+  <p class="hint">The link holds only the style, size, length and colour. Anyone who opens it sees this look on the 3D bust: no photo, no name, no notes.</p>
+  <div class="qr" id="link-qr" role="img" aria-label="QR code for this look"></div>
+  <input id="link-url" type="text" readonly aria-label="Link to this look">
+  <p class="hint" id="link-status" role="status" aria-live="polite"></p>
+  <div class="row">
+    <button class="btn" id="link-copy" type="button">Copy link</button>
+    <button class="btn primary" id="link-close" type="button">Done</button>
   </div>
 </dialog>
 <!--APP-->

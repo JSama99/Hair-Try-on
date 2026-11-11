@@ -39,7 +39,7 @@ Tests: `npm test` (unit), `npm run e2e` (both browser suites; needs `pip install
 
 ## C. Configure a pilot salon
 
-Edit `web/salon/salon.config.json`, then `npm run build`. Every field is checked at startup; problems are listed in the browser console and the page falls back safely.
+Open **`setup.html`** beside the studio: fill in the form, check the verdict, **Preview in the studio**, then **Download salon.config.json** and put it beside `index.html` (replacing the old one). No rebuild. The setup page also prints a QR poster for the mirror. The file can still be edited by hand; every field is checked at startup, problems are listed in the browser console, and a broken file falls back to the built-in settings.
 
 ```json
 {
@@ -86,9 +86,12 @@ Edit `web/salon/salon.config.json`, then `npm run build`. Every field is checked
 | Style Card (style, size, length, colour, optional day, hair supply, notes) | Only where she copies, downloads or shares it herself. Contains no image, face data, phone number or e-mail (enforced by validation and tests). |
 | Session storage | The saved look plus preferred day and hair supply, for this browser session only. No notes, no images. "Delete saved look" clears it. |
 | External booking provider | Receives only what any visitor following a link sends (the page URL and her browser's normal request). No Style Card, no referrer (`rel="noreferrer"`). |
-| Network | The page loads three.js and MediaPipe scripts from jsDelivr and fonts from Google Fonts (those services see her IP address and the request, not her data). Models and wasm load from the page's own host. The consultation flow makes **no** requests (tested: no POST/PUT, no new hosts). |
+| Camera (live mirror) | Frames are read by the on-device models and dropped. Never recorded or stored. The camera turns off when she leaves the mode or the tab. |
+| A look link or QR code | Four catalog ids in the URL fragment (not sent to servers). No photo, name, notes or day. |
+| My looks | `localStorage` in her browser: catalog ids only. "Clear all" removes them. |
+| Network | The page loads **nothing from other websites**: scripts, fonts, models and wasm are its own files. Its Content-Security-Policy allows connections to its own origin only, so the browser refuses anything else (tested with a hostile request). The hosting server sees ordinary page requests, never her data. |
 
-**Before real customer photos or real salon details are used:** confirm the hosting origin and its logs; decide whether to self-host fonts and scripts (removes the jsDelivr/Google requests); publish a short privacy notice; get the salon's written approval of every config field; open each booking link on a phone; and remove the Demo flag only for a real, consenting salon.
+**Before real customer photos or real salon details are used:** confirm the hosting origin and its logs; publish a short privacy notice; get the salon's written approval of every config field; open each booking link on a phone; and remove the Demo flag only for a real, consenting salon.
 
 ## F. Known limitations
 
@@ -99,7 +102,8 @@ Edit `web/salon/salon.config.json`, then `npm run build`. Every field is checked
 - Restricted lengths (mid-back, waist) cannot be previewed or carded (no body fitting).
 - Previews do not guarantee the physical result; photo hairline estimates are good to about ±1 cm.
 - Downloads are blocked inside some embedded viewers (for example a claude.ai artifact preview); the page then says to copy instead.
-- The salon config is baked in at build time: changing it means a rebuild.
+- The stylist view shows a card she was sent; there is still no inbox.
+- The live mirror needs a camera and an https page; it is not available inside a claude.ai artifact preview, and it has not yet been measured on phones.
 
 ## G. iOS parity (next, without touching the AR engine)
 

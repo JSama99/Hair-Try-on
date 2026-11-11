@@ -902,3 +902,6 @@ export async function digest(result) {
   const h = await crypto.subtle.digest('SHA-256', all);
   return Array.from(new Uint8Array(h), (b) => b.toString(16).padStart(2, '0')).join('');
 }
+
+// Constraint kernels shared with the live simulation (src/hairsim.js). Exported, not changed.
+export { bendFlat, followTheLeaderFlat, collideFlat };

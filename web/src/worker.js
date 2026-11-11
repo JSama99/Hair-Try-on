@@ -3,10 +3,12 @@
 //
 // Request:  {id, spec, head, triangleBudget}
 // Progress: {id, progress}
-// Reply:    {id, lod: 0|1, positions, normals, uvs, fracs, strandIds, indices, stats, ms}
+// Request:  ... `sim: true` asks for the light LOD1 shells plus simulation chains (live mirror).
+// Reply:    {id, lod: 0|1, positions, normals, uvs, fracs, strandIds, indices, stats, ms, chains?}
 //           typed arrays are transferred, not copied.
 
 import { generateSteps, HeadProxy, PROFILES } from './protostyle.js';
+import { buildChains } from './hairsim.js';
 
 /** Upper-bound estimate of LOD0 triangles (cornrow paths add their on-scalp run, ~0.3 m). */
 export function estimateLod0Triangles(spec, roots) {
@@ -28,7 +30,7 @@ export function packMesh(mesh) {
   };
 }
 
-export function runJob({ spec, head, triangleBudget = 1_500_000 }, onProgress) {
+export function runJob({ spec, head, triangleBudget = 1_500_000, sim = false }, onProgress) {
   const t0 = performance.now();
   const headProxy = new HeadProxy(head);
   // Decide the level of detail before generating so we never build what we will not draw:
@@ -37,7 +39,7 @@ export function runJob({ spec, head, triangleBudget = 1_500_000 }, onProgress) {
   let r;
   do { r = probe.next(); } while (!r.done);
   const est = estimateLod0Triangles(spec, r.value.stats.roots);
-  const includeLOD0 = est <= triangleBudget;
+  const includeLOD0 = !sim && est <= triangleBudget;
   const it = generateSteps(spec, headProxy, { includeLOD0 });
   let res;
   for (;;) {
@@ -46,7 +48,10 @@ export function runJob({ spec, head, triangleBudget = 1_500_000 }, onProgress) {
     onProgress(step.value.done / Math.max(1, step.value.total));
   }
   const mesh = includeLOD0 ? res.lod0 : res.lod1;
-  return { lod: includeLOD0 ? 0 : 1, ...packMesh(mesh), stats: res.stats, estimate: est, ms: performance.now() - t0 };
+  const out = { lod: includeLOD0 ? 0 : 1, ...packMesh(mesh), stats: res.stats, estimate: est };
+  if (sim) out.chains = buildChains(res);
+  out.ms = performance.now() - t0;
+  return out;
 }
 
 if (typeof self !== 'undefined' && typeof self.postMessage === 'function' && typeof window === 'undefined') {
@@ -58,7 +63,9 @@ if (typeof self !== 'undefined' && typeof self.postMessage === 'function' && typ
         const now = performance.now();
         if (now - last > 50) { last = now; self.postMessage({ id, progress: p }); }
       });
-      self.postMessage({ id, ...out }, [out.positions.buffer, out.normals.buffer, out.uvs.buffer, out.fracs.buffer, out.strandIds.buffer, out.indices.buffer]);
+      const transfer = [out.positions.buffer, out.normals.buffer, out.uvs.buffer, out.fracs.buffer, out.strandIds.buffer, out.indices.buffer];
+      if (out.chains) for (const k of ['nodes', 'counts', 'pinned', 'ds', 'totals', 'rootIds']) transfer.push(out.chains[k].buffer);
+      self.postMessage({ id, ...out }, transfer);
     } catch (err) {
       self.postMessage({ id, error: String(err && err.message ? err.message : err) });
     }

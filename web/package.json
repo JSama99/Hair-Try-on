@@ -1,6 +1,6 @@
 {
   "name": "braid-tryon-studio",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "private": true,
   "description": "Browser try-on for protective hairstyles; JS port of reference/protostyle.",
   "type": "module",
@@ -9,14 +9,23 @@
     "assets": "bash tools/fetch-assets.sh",
     "build": "node tools/build.mjs",
     "test": "node --test test/*.test.mjs",
-    "e2e": "python3 test/e2e.py && python3 test/e2e_consult.py",
+    "e2e": "python3 test/e2e.py && python3 test/e2e_consult.py && python3 test/e2e_live.py && python3 test/e2e_extras.py",
     "e2e:studio": "python3 test/e2e.py",
-    "e2e:consult": "python3 test/e2e_consult.py"
+    "e2e:consult": "python3 test/e2e_consult.py",
+    "e2e:live": "python3 test/e2e_live.py",
+    "e2e:extras": "python3 test/e2e_extras.py",
+    "build:artifact": "ARTIFACT=1 node tools/build.mjs",
+    "icons": "python3 tools/make-icons.py"
   },
   "devDependencies": {
+    "@fontsource-variable/bricolage-grotesque": "5.3.0",
+    "@fontsource-variable/figtree": "5.3.0",
+    "@fontsource/ibm-plex-mono": "5.3.0",
+    "@mediapipe/tasks-vision": "1.0.1",
+    "axe-core": "4.14.0",
     "esbuild": "0.28.2",
     "three": "0.186.1",
-    "@mediapipe/tasks-vision": "1.0.1"
+    "uqr": "0.1.3"
   },
   "engines": {
     "node": ">=20"

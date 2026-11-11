@@ -100,7 +100,7 @@ def main():
             check("E03 caption follows the colour", "1B/613" in pg.inner_text("#caption"))
 
             before = pg.evaluate("window.__tryon.state.look.length")
-            pg.click("#lengths button[aria-label^='Waist']")
+            pg.click("#lengths button:has-text('Waist')")
             time.sleep(0.2)
             banner = pg.inner_text("#banner") if pg.is_visible("#banner") else ""
             check("E04 locked length explains itself and changes nothing",

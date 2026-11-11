@@ -65,7 +65,7 @@ def main():
         ctx, pg, errors, requests = open_page(browser, base, init=SHARE_STUB, permissions=["clipboard-read", "clipboard-write"])
         check("J00 salon banner names the demo salon and says it is fictional",
               "Crown & Coil" in pg.inner_text("#salon") and pg.is_visible("#salon-demo") and "fictional" in pg.inner_text("#salon-note"))
-        offered = pg.evaluate("[...document.querySelectorAll('#styles button')].filter(b => b.querySelector('.offered')).map(b => b.textContent)")
+        offered = pg.evaluate("[...document.querySelectorAll('#styles button')].filter(b => b.querySelector('.offered')).map(b => b.textContent.replace(', offered by this salon', ''))")
         check("J00 only the salon's styles are marked as offered", sorted(offered) == sorted(["Knotless braids", "Box braids", "Locs", "Cornrows"]), str(offered))
 
         style_click(pg, "Box braids")
@@ -189,7 +189,7 @@ def main():
         check("J14 a style the salon does not list says ask first", pg.inner_text("#booking-title") == "Ask before booking" and card(pg)["bookingMode"] == "not-offered")
 
         before = card(pg)["style"]["length"]["id"]
-        pg.click("#lengths button[aria-label^='Waist']")
+        pg.click("#lengths button:has-text('Waist')")
         time.sleep(0.2)
         check("J15 locked lengths stay locked and never reach a card",
               "body capture" in pg.inner_text("#banner") and card(pg)["style"]["length"]["id"] == before and pg.evaluate("window.__tryon.state.look.length") != "waist")

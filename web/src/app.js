@@ -11,6 +11,10 @@ import { buildFaceParts } from './mesh-tools.js';
 import salonConfigRaw from '../salon/salon.config.json' with { type: 'json' };
 import { validateSalonConfig, NO_SALON } from './salon-config.js';
 import { createConsultation } from './consult-ui.js';
+import { createExtras } from './extras-ui.js';
+import { createLive } from './live.js';
+import { HairSimulation, poseFromMatrix, SIM_DEFAULTS } from './hairsim.js';
+import { lookFromHash } from './look-link.js';
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -18,7 +22,9 @@ const els = {
   status: $('status'), banner: $('banner'), progress: $('progress'), views: $('views'),
   styles: $('styles'), sizes: $('sizes'), lengths: $('lengths'), colors: $('colors'), tones: $('tones'),
   styleBlurb: $('style-blurb'), sizeVal: $('size-val'), lengthVal: $('length-val'), colorVal: $('color-val'), skinVal: $('skin-val'),
-  modeStudio: $('mode-studio'), modePhoto: $('mode-photo'), photoPick: $('photo-pick'), photoInput: $('photo-input'), photoBtnLabel: $('photo-btn-label'),
+  modeStudio: $('mode-studio'), modePhoto: $('mode-photo'), modeLive: $('mode-live'), livePick: $('live-pick'), liveStart: $('live-start'),
+  liveHairline: $('live-hairline'), liveHint: $('live-hint'), cam: $('cam'), compare: $('compare'), offlineNote: $('offline-note'),
+  photoPick: $('photo-pick'), photoInput: $('photo-input'), photoBtnLabel: $('photo-btn-label'),
   skinSec: $('skin-sec'), fitSec: $('fit-sec'), fitHint: $('fit-hint'), fitReset: $('fit-reset'),
   fit: { x: $('fit-x'), y: $('fit-y'), s: $('fit-s'), r: $('fit-r'), t: $('fit-t') },
   caption: $('caption'), capture: $('capture'), copyCaption: $('copy-caption'), copyStatus: $('copy-status'),
@@ -43,7 +49,14 @@ const state = {
   conflict: false,
   lastMeasure: null,
   hairlineFront: null,  // calibrated from the photo, radians
+  live: null,           // {w, h} of the camera picture while the live mirror is tracking
+  liveAnalysis: { matrix: null, hair: null, hairMatrix: null },
+  liveHairline: null,   // matched from the camera on request, radians
+  liveStatus: 'off',    // off | starting | tracking | lost | error
 };
+/** What the style is drawn over: the photo, the camera picture, or nothing (the 3D bust). */
+const backdrop = () => (state.mode === 'photo' ? state.photo : state.mode === 'live' ? state.live : null);
+const analysis = () => (state.mode === 'live' ? state.liveAnalysis : state.analysis);
 const BASE_HEAD = state.head;
 const isCoarse = matchMedia('(pointer: coarse)').matches || (navigator.hardwareConcurrency || 8) <= 4;
 const TRIANGLE_BUDGET = isCoarse ? 700_000 : 1_600_000;
@@ -292,6 +305,13 @@ const hairMat = new THREE.MeshPhysicalMaterial({
 });
 let hairMesh = null;
 let hairData = null; // last worker reply
+let sim = null;      // live mirror: HairSimulation over the LOD1 shells
+let simPlaced = false;
+let comparing = false;
+
+function syncHairVisible() {
+  if (hairMesh) hairMesh.visible = !comparing && !(state.mode === 'live' && state.live && state.liveStatus !== 'tracking');
+}
 
 function recolor() {
   if (!hairMesh) return;
@@ -310,7 +330,13 @@ function recolor() {
   requestRender();
 }
 
-function installHair(data, spec) {
+/** Fewer, larger steps for very dense styles so phones keep up (same solver, coarser time step). */
+function simParamsFor(nodes) {
+  const heavy = nodes > (isCoarse ? 5000 : 9000);
+  return heavy ? { ...SIM_DEFAULTS, dt: 1 / 60, passes: 3, maxStepsPerAdvance: 3 } : { ...SIM_DEFAULTS };
+}
+
+function installHair(data, spec, head) {
   if (hairMesh) {
     rig.remove(hairMesh);
     hairMesh.geometry.dispose();
@@ -327,7 +353,17 @@ function installHair(data, spec) {
   hairMat.bumpScale = data.lod === 0 ? 1.2 : 2.4;
   hairMat.needsUpdate = true;
   hairMesh = new THREE.Mesh(geo, hairMat);
+  sim = null;
+  if (data.chains) {
+    // Live mirror: the shells are re-skinned to the simulated chains every frame.
+    sim = new HairSimulation(data.chains, head, data, simParamsFor(data.chains.nodes.length / 3));
+    simPlaced = false;
+    geo.getAttribute('position').setUsage(THREE.DynamicDrawUsage);
+    geo.getAttribute('normal').setUsage(THREE.DynamicDrawUsage);
+    hairMesh.frustumCulled = false;
+  }
   rig.add(hairMesh);
+  syncHairVisible();
   recolor();
 }
 
@@ -369,17 +405,20 @@ function onWorkerMessage(e) {
 }
 
 function finishBuild(data, job) {
-  installHair(data, job.spec);
+  installHair(data, job.spec, job.head);
+  builtSim = !!data.chains;
   const unit = job.spec.kind === 'cornrows' ? 'rows' : job.spec.kind === 'locs' ? 'locs' : job.spec.kind === 'two_strand_twists' ? 'twists' : 'braids';
   const tris = data.indices.length / 3;
   const detail = data.lod === 0 ? 'full strand detail' : 'light detail for this device';
   setStatus(`${data.stats.roots} ${unit} · ${(tris / 1000).toFixed(0)}k triangles · ${detail}`, { ready: true });
   document.body.dataset.ready = 'true';
   document.body.dataset.lod = String(data.lod);
-  if (state.mode === 'photo' && state.photo) scheduleConflict();
+  document.body.dataset.sim = sim ? 'on' : 'off';
+  if (backdrop()) scheduleConflict();
   requestRender();
 }
 
+let builtSim = false;
 let buildTimer = 0;
 function scheduleBuild() {
   clearTimeout(buildTimer);
@@ -396,11 +435,12 @@ function build() {
   document.body.dataset.ready = 'false';
   if (pending && worker) { worker.terminate(); worker = null; }
   const id = ++jobId;
-  pending = { id, spec, label };
+  const wantSim = state.mode === 'live';
+  pending = { id, spec, label, head };
   setStatus(`Building ${label}…`);
   setProgress(0.02);
   if (!worker) worker = makeWorker();
-  const job = { id, spec, head: head.toJSON(), triangleBudget: TRIANGLE_BUDGET };
+  const job = { id, spec, head: head.toJSON(), triangleBudget: TRIANGLE_BUDGET, sim: wantSim };
   if (worker) {
     worker.postMessage(job);
   } else {
@@ -410,7 +450,7 @@ function build() {
       const out = runJob(job, () => {});
       pending = null;
       setProgress(null);
-      finishBuild(out, { spec, label });
+      finishBuild(out, { spec, label, head });
     }, 30);
   }
 }
@@ -423,8 +463,9 @@ function requestRender() { dirty = true; }
 function layout() {
   const W = els.wrap.clientWidth, H = els.wrap.clientHeight;
   let w = W, h = H;
-  if (state.mode === 'photo' && state.photo) {
-    const a = state.photo.w / state.photo.h;
+  const bd = backdrop();
+  if (bd) {
+    const a = bd.w / bd.h;
     w = Math.min(W, H * a);
     h = w / a;
     els.viewport.classList.add('photo');
@@ -447,7 +488,7 @@ function frame() {
   if (state.mode === 'studio' && controls.update()) dirty = true;
   if (dirty) {
     dirty = false;
-    renderer.render(scene, state.mode === 'photo' && state.photo ? photoCam : studioCam);
+    renderer.render(scene, backdrop() ? photoCam : studioCam);
   }
   requestAnimationFrame(frame);
 }
@@ -501,24 +542,27 @@ function chip(label, sub, pressed, onClick, { locked = false, offered = false } 
   b.className = `chip${locked ? ' locked' : ''}`;
   b.type = 'button';
   b.setAttribute('aria-pressed', String(pressed));
+  // The accessible name is the visible text plus a hidden note, so voice control ("click Waist") matches what is shown.
+  const note = (text) => { const s = document.createElement('span'); s.className = 'sr-only'; s.textContent = text; return s; };
   if (locked) {
     b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
-    b.setAttribute('aria-label', `${label}, needs a body capture`);
+    b.dataset.locked = 'true';
   }
   if (offered) {
     const dot = document.createElement('span');
     dot.className = 'offered';
     dot.setAttribute('aria-hidden', 'true');
     b.append(dot);
-    b.setAttribute('aria-label', `${label}, offered by this salon`);
   }
   b.append(document.createTextNode(label));
   if (sub) {
     const s = document.createElement('span');
     s.className = 'sub';
     s.textContent = sub;
-    b.append(s);
+    b.append(document.createTextNode(' '), s);
   }
+  if (locked) b.append(note(', needs a body capture'));
+  if (offered) b.append(note(', offered by this salon'));
   b.addEventListener('click', onClick);
   return b;
 }
@@ -589,42 +633,55 @@ function renderControls() {
 
   els.caption.textContent = T.caption(state.look);
   if (consult) consult.lookChanged();
+  if (extras) extras.lookChanged();
 }
 
 // ------------------------------------------------------------------ modes
 
+/** Show the bust, the photo or the camera picture behind the style, to match the mode. */
+function syncBackdrop() {
+  const shown = !!backdrop();
+  els.photo.hidden = !(state.mode === 'photo' && state.photo);
+  els.cam.hidden = !(state.mode === 'live' && state.live);
+  els.overlay.hidden = !shown;
+  els.compare.hidden = !shown;
+  els.viewport.classList.toggle('mirror', state.mode === 'live' && !!state.live);
+  mannequin.visible = !shown;
+  occluders.visible = shown;
+  syncHairVisible();
+  if (!shown) { rig.matrix.identity(); rig.matrixWorldNeedsUpdate = true; }
+  layout();
+}
+
 function setMode(mode) {
+  if (state.mode === 'live' && mode !== 'live') stopLive();
   state.mode = mode;
   els.modeStudio.setAttribute('aria-pressed', String(mode === 'studio'));
   els.modePhoto.setAttribute('aria-pressed', String(mode === 'photo'));
+  els.modeLive.setAttribute('aria-pressed', String(mode === 'live'));
   els.photoPick.hidden = mode !== 'photo';
+  els.livePick.hidden = mode !== 'live';
   els.skinSec.hidden = mode !== 'studio';
   els.fitSec.hidden = !(mode === 'photo' && state.photo);
   els.views.hidden = mode !== 'studio';
-  const photoShown = mode === 'photo' && !!state.photo;
-  els.photo.hidden = !photoShown;
-  els.overlay.hidden = !photoShown;
-  mannequin.visible = !photoShown;
-  occluders.visible = photoShown;
   controls.enabled = mode === 'studio';
   hideNotice('conflict');
-  if (photoShown) applyPose();
-  else { rig.matrix.identity(); rig.matrixWorldNeedsUpdate = true; }
-  if (mode === 'studio' && state.hairlineFront !== null) {
-    state.hairlineFront = null; // the bust uses the standard hairline
-    scheduleBuild();
-  } else if (photoShown && state.analysis && state.analysis.hairline !== undefined && state.hairlineFront !== state.analysis.hairline) {
-    state.hairlineFront = state.analysis.hairline;
+  syncBackdrop();
+  if (mode === 'photo' && state.photo) applyPose();
+  // The bust uses the standard hairline; a photo or the camera uses the one matched from it.
+  const hairline = mode === 'photo' && state.photo && state.analysis ? (state.analysis.hairline ?? null) : mode === 'live' ? state.liveHairline : null;
+  if (hairline !== state.hairlineFront || (mode === 'live') !== builtSim) {
+    state.hairlineFront = hairline;
     scheduleBuild();
   }
-  layout();
   if (mode === 'photo' && !state.photo) showNotice('Choose a photo to see the style on you. It never leaves this tab.', { kind: 'info' });
+  if (mode === 'live' && !live.running) showNotice('Turn on the camera to see the style move with you. Nothing is recorded or sent.', { kind: 'info' });
 }
 
 // ------------------------------------------------------------------ photo pipeline
 
 const ASSET = (p) => new URL(p, document.baseURI).href;
-const MP_CDN = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1';
+const MP = (f) => ASSET(`mediapipe/${f}`); // MediaPipe Tasks Vision, served from this page's own files
 
 /** Fetch a model shipped as {sha256, base64}, decode it, and refuse it unless the hash matches. */
 async function loadModel(rel) {
@@ -643,13 +700,9 @@ async function loadVision() {
   if (state.vision) return state.vision;
   setStatus('Loading face and hair models…');
   try {
-    // Scripts come from the pinned CDN build (allowed for scripts); the wasm
-    // binary and models are this page's own files (fetches stay same-origin).
-    const vision = await import(/* webpackIgnore: true */ `${MP_CDN}/vision_bundle.mjs`);
-    const fileset = {
-      wasmLoaderPath: `${MP_CDN}/wasm/vision_wasm_internal.js`,
-      wasmBinaryPath: ASSET('mediapipe/vision_wasm_internal.wasm'),
-    };
+    // The library, its wasm binary and the models are all this page's own files: no other host is contacted.
+    const vision = await import(MP('vision_bundle.js'));
+    const fileset = { wasmLoaderPath: MP('vision_wasm_internal.js'), wasmBinaryPath: MP('vision_wasm_internal.wasm') };
     const timeout = (ms) => new Promise((_, rej) => setTimeout(() => rej(new Error('model load timed out')), ms));
     const [faceModel, hairModel] = await Promise.all([loadModel('models/face_landmarker.json'), loadModel('models/hair_segmenter.json')]);
     const face = await Promise.race([vision.FaceLandmarker.createFromOptions(fileset, {
@@ -660,7 +713,7 @@ async function loadVision() {
       baseOptions: { modelAssetBuffer: hairModel, delegate: 'CPU' },
       runningMode: 'IMAGE', outputConfidenceMasks: true, outputCategoryMask: false,
     }), timeout(30000)]);
-    state.vision = { face, hair };
+    state.vision = { face, hair, lib: vision, fileset, timeout };
   } catch (err) {
     console.warn('MediaPipe unavailable:', err);
     state.vision = { error: String(err && err.message ? err.message : err) };
@@ -697,6 +750,19 @@ async function loadPhoto(file) {
   state.manual = false;
   setMode('photo');
   await analyzePhoto();
+}
+
+/** Front hairline (radians on the scalp proxy) from a pose matrix and a hair mask, or null. */
+function estimateHairline(matrix, hair, w, h) {
+  return T.estimateHairlineFront(BASE_HEAD, (p) => {
+    const cam = T.applyMat(matrix, [p[0] * 100, p[1] * 100, p[2] * 100]);
+    const [px, py] = T.projectToPixels(cam, w, h);
+    return [px / w, py / h];
+  }, (u, vv) => {
+    const x = Math.min(hair.w - 1, Math.max(0, Math.floor(u * hair.w)));
+    const y = Math.min(hair.h - 1, Math.max(0, Math.floor(vv * hair.h)));
+    return hair.probs[y * hair.w + x];
+  });
 }
 
 async function analyzePhoto() {
@@ -736,18 +802,7 @@ async function analyzePhoto() {
   }
   const reprojPx = landmarks ? T.reprojectionError(matrix, FACE_VERTICES.map((p) => [p[0] * 100, p[1] * 100, p[2] * 100]), landmarks, w, h) : null;
   state.analysis = { matrix, landmarks, hair, reprojPx };
-  let hairline = null;
-  if (hair && !state.manual) {
-    hairline = T.estimateHairlineFront(BASE_HEAD, (p) => {
-      const cam = T.applyMat(matrix, [p[0] * 100, p[1] * 100, p[2] * 100]);
-      const [px, py] = T.projectToPixels(cam, w, h);
-      return [px / w, py / h];
-    }, (u, vv) => {
-      const x = Math.min(hair.w - 1, Math.max(0, Math.floor(u * hair.w)));
-      const y = Math.min(hair.h - 1, Math.max(0, Math.floor(vv * hair.h)));
-      return hair.probs[y * hair.w + x];
-    });
-  }
+  const hairline = hair && !state.manual ? estimateHairline(matrix, hair, w, h) : null;
   state.analysis.hairline = hairline;
   if (readyStatus) setStatus(readyStatus);
   document.body.dataset.fit = state.manual ? 'manual' : 'auto';
@@ -811,6 +866,145 @@ const endDrag = () => { drag = null; };
 els.viewport.addEventListener('pointerup', endDrag);
 els.viewport.addEventListener('pointercancel', endDrag);
 
+// ------------------------------------------------------------------ live mirror
+
+const SCALE100 = new THREE.Matrix4().makeScale(100, 100, 100);
+let wantHairline = false;
+let simCostMs = 0;
+
+/** A second FaceLandmarker in VIDEO mode (the photo one stays in IMAGE mode), from the same model. */
+async function loadLiveTasks() {
+  const v = await loadVision();
+  if (v.error) throw new Error(v.error);
+  if (!v.faceVideo) {
+    v.faceVideo = await Promise.race([v.lib.FaceLandmarker.createFromOptions(v.fileset, {
+      baseOptions: { modelAssetBuffer: await loadModel('models/face_landmarker.json'), delegate: 'CPU' },
+      runningMode: 'VIDEO', numFaces: 1, outputFacialTransformationMatrixes: true,
+    }), v.timeout(30000)]);
+  }
+  if (readyStatus) setStatus(readyStatus);
+  return { face: v.faceVideo, hair: v.hair };
+}
+
+function setLiveStatus(status) {
+  state.liveStatus = status;
+  document.body.dataset.live = status;
+  els.liveStart.textContent = live.streaming ? 'Turn off the camera' : 'Turn on the camera';
+  els.liveHairline.hidden = !live.streaming;
+  if (status === 'lost' && state.live) showNotice('Face the camera so the style can find your head.', { kind: 'live', sticky: true });
+  if (status === 'tracking') hideNotice('live');
+  syncHairVisible();
+  requestRender();
+}
+
+function onLivePose({ matrix, raw, dt, w, h }) {
+  if (state.mode !== 'live') return;
+  if (!state.live || state.live.w !== w || state.live.h !== h) {
+    state.live = { w, h };
+    syncBackdrop();
+  }
+  state.liveAnalysis.matrix = matrix;
+  state.liveAnalysis.raw = raw;
+  rig.matrix.fromArray(matrix).multiply(SCALE100);
+  rig.matrixWorldNeedsUpdate = true;
+  if (sim && hairMesh) {
+    const t0 = performance.now();
+    const pose = poseFromMatrix(matrix);
+    if (!simPlaced) { sim.settle(pose, 1.0); simPlaced = true; } else sim.advance(pose, dt);
+    const pos = hairMesh.geometry.getAttribute('position'), nrm = hairMesh.geometry.getAttribute('normal');
+    sim.skin(pos.array, nrm.array);
+    pos.needsUpdate = true;
+    nrm.needsUpdate = true;
+    // Governor: if the solver alone eats the frame, take fewer steps (hair moves a little heavier).
+    simCostMs += 0.1 * ((performance.now() - t0) - simCostMs);
+    if (simCostMs > 12 && sim.params.maxStepsPerAdvance > 1) { sim.params.maxStepsPerAdvance--; simCostMs = 6; }
+  }
+  requestRender();
+}
+
+function onLiveHair(hair, rawMatrix) {
+  if (state.mode !== 'live' || !state.live) return;
+  state.liveAnalysis.hair = hair;
+  state.liveAnalysis.hairMatrix = rawMatrix;
+  if (wantHairline) {
+    wantHairline = false;
+    const hl = estimateHairline(rawMatrix, hair, state.live.w, state.live.h);
+    document.body.dataset.hairline = hl === null ? 'default' : hl.toFixed(3);
+    if (hl === null) {
+      showNotice('Your hairline was not clear enough to match. Pull your hair back or wear a wrap, face the camera in even light, and try again.', { kind: 'info' });
+    } else {
+      state.liveHairline = hl;
+      state.hairlineFront = hl;
+      showNotice('The style now starts at your hairline (good to about a centimetre).', { kind: 'info', title: 'Hairline matched.' });
+      scheduleBuild();
+    }
+  }
+  scheduleConflict();
+}
+
+const live = createLive({
+  video: els.cam,
+  loadTasks: loadLiveTasks,
+  onPose: onLivePose,
+  onLost: () => { simPlaced = false; },
+  onHair: onLiveHair,
+  onState: (st) => setLiveStatus(st),
+});
+
+async function startLive() {
+  els.liveStart.disabled = true;
+  setStatus('Starting the camera…');
+  const r = await live.start();
+  els.liveStart.disabled = false;
+  if (readyStatus) setStatus(readyStatus);
+  if (!r.ok) {
+    if (r.message) showNotice(r.message, { kind: 'error', title: 'Camera unavailable.', sticky: true });
+    setLiveStatus('error');
+    return;
+  }
+  hideNotice();
+  setLiveStatus(state.liveStatus);
+}
+
+function stopLive() {
+  live.stop();
+  state.live = null;
+  state.liveAnalysis = { matrix: null, hair: null, hairMatrix: null };
+  simPlaced = false;
+  wantHairline = false;
+  hideNotice('live');
+  hideNotice('conflict');
+  state.conflict = false;
+  document.body.dataset.conflict = 'no';
+}
+
+els.liveStart.addEventListener('click', () => {
+  if (live.streaming) { stopLive(); syncBackdrop(); } else startLive();
+});
+els.liveHairline.addEventListener('click', () => {
+  if (state.liveStatus !== 'tracking') { showNotice('Face the camera first, then match your hairline.', { kind: 'info' }); return; }
+  wantHairline = true;
+  live.requestHair();
+  showNotice('Hold still for a moment…', { kind: 'info' });
+});
+// The camera never stays on behind the user's back: leaving the tab turns it off.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && live.streaming) { stopLive(); syncBackdrop(); showNotice('The camera was turned off because you left this tab.', { kind: 'info' }); }
+});
+window.addEventListener('pagehide', () => { if (live.streaming) live.stop(); });
+
+// Hold to compare: hide the style while the button is held (photo and live mirror).
+function setComparing(on) {
+  comparing = on;
+  els.compare.setAttribute('aria-pressed', String(on));
+  syncHairVisible();
+  requestRender();
+}
+els.compare.addEventListener('pointerdown', (e) => { els.compare.setPointerCapture(e.pointerId); setComparing(true); });
+for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture', 'blur']) els.compare.addEventListener(ev, () => setComparing(false));
+els.compare.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); setComparing(true); } });
+els.compare.addEventListener('keyup', (e) => { if (e.key === ' ' || e.key === 'Enter') setComparing(false); });
+
 // ------------------------------------------------------------------ honest preview
 
 let conflictTimer = 0;
@@ -847,18 +1041,22 @@ function silhouette(objects, mw, mh) {
 }
 
 function checkConflict() {
-  if (state.mode !== 'photo' || !state.photo || !state.analysis || !hairMesh) return;
-  const hair = state.analysis.hair;
+  const bd = backdrop(), an = analysis();
+  if (!bd || !an || !an.matrix || !hairMesh) return;
+  if (state.mode === 'live' && state.liveStatus !== 'tracking') return;
+  const hair = an.hair;
   if (!hair) { document.body.dataset.conflict = 'unknown'; return; }
-  const [mw, mh] = T.maskSize(state.photo.w, state.photo.h, 256);
+  const [mw, mh] = T.maskSize(bd.w, bd.h, 256);
   const aspect = photoCam.aspect;
-  photoCam.aspect = state.photo.w / state.photo.h;
+  const wasVisible = hairMesh.visible;
+  photoCam.aspect = bd.w / bd.h;
   photoCam.updateProjectionMatrix();
   const occ = occluders.children.map((o) => [o, occluderMat]);
   const styleMask = T.dilate(silhouette([[hairMesh, whiteMat], ...occ], mw, mh), mw, mh, T.closingRadius(mw, mh));
   const headMask = silhouette(occluders.children.map((o) => [o, whiteMat]), mw, mh);
   photoCam.aspect = aspect;
   photoCam.updateProjectionMatrix();
+  hairMesh.visible = wasVisible;
   const probs = T.resampleMask(hair.probs, hair.w, hair.h, mw, mh);
   let headArea = 0;
   for (let i = 0; i < headMask.length; i++) headArea += headMask[i];
@@ -908,7 +1106,8 @@ function wrapText(g, text, maxW) {
 let captureBlob = null;
 let captureSource = null; // 'photo' (may show the customer) or 'studio' (the 3D bust)
 async function capture() {
-  renderer.render(scene, state.mode === 'photo' && state.photo ? photoCam : studioCam);
+  const bd = backdrop();
+  renderer.render(scene, bd ? photoCam : studioCam);
   const src = renderer.domElement;
   const w = src.width, h = src.height;
   const pad = Math.round(w * 0.04);
@@ -920,7 +1119,15 @@ async function capture() {
   const band = pad * 2 + lines.length * fontPx * 1.35 + fontPx * 1.2;
   out.width = w;
   out.height = Math.round(h + band);
-  if (state.mode === 'photo' && state.photo) {
+  if (state.mode === 'live' && bd) {
+    // The mirror is shown flipped; the capture is flipped the same way so it matches what she saw.
+    g.save();
+    g.translate(w, 0);
+    g.scale(-1, 1);
+    g.drawImage(els.cam, 0, 0, w, h);
+    g.drawImage(src, 0, 0, w, h);
+    g.restore();
+  } else if (bd) {
     g.drawImage(state.photo.canvas, 0, 0, w, h);
   } else {
     const grd = g.createRadialGradient(w / 2, h * 0.35, 0, w / 2, h * 0.35, Math.max(w, h) * 0.75);
@@ -929,7 +1136,7 @@ async function capture() {
     g.fillStyle = grd;
     g.fillRect(0, 0, w, h);
   }
-  g.drawImage(src, 0, 0, w, h);
+  if (state.mode !== 'live' || !bd) g.drawImage(src, 0, 0, w, h);
   g.fillStyle = cssVar('--surface');
   g.fillRect(0, h, w, band);
   g.fillStyle = cssVar('--ink');
@@ -940,7 +1147,7 @@ async function capture() {
   g.font = `400 ${Math.round(fontPx * 0.72)}px "IBM Plex Mono", ui-monospace, monospace`;
   g.fillText('Preview from Braid Try-On Studio. Ask your stylist about hair amount and install time.', pad, h + pad + lines.length * fontPx * 1.35 + fontPx * 0.35);
   captureBlob = await new Promise((res) => out.toBlob(res, 'image/png'));
-  captureSource = state.mode === 'photo' && state.photo ? 'photo' : 'studio';
+  captureSource = bd ? 'photo' : 'studio'; // a photo or camera capture may show the customer
   if (consult) consult.refresh();
   if (els.captureImg.src) URL.revokeObjectURL(els.captureImg.src);
   els.captureImg.src = URL.createObjectURL(captureBlob);
@@ -971,6 +1178,7 @@ els.copyCaption.addEventListener('click', async () => {
 
 els.modeStudio.addEventListener('click', () => setMode('studio'));
 els.modePhoto.addEventListener('click', () => setMode('photo'));
+els.modeLive.addEventListener('click', () => setMode('live'));
 els.photoInput.addEventListener('change', () => {
   const f = els.photoInput.files && els.photoInput.files[0];
   if (f) loadPhoto(f);
@@ -985,14 +1193,59 @@ function loadSalon(raw) {
   return errors.length ? NO_SALON : config;
 }
 let consult = null;
+let extras = null;
+const setLook = (look) => { state.look = { ...state.look, ...look }; renderControls(); scheduleBuild(); };
 consult = createConsultation({
   getLook: () => ({ ...state.look }),
-  setLook: (look) => { state.look = { ...state.look, ...look }; renderControls(); scheduleBuild(); },
+  setLook,
   getCapture: () => (captureBlob ? { blob: captureBlob, source: captureSource } : null),
   onNotice: (text) => showNotice(text, { kind: 'info' }),
 });
 consult.setSalon(loadSalon(salonConfigRaw));
 consult.restoreSession();
+document.body.dataset.salon = 'built-in';
+extras = createExtras({ getLook: () => ({ ...state.look }), setLook });
+
+// A link to a look (#look=...) opens on that look; it holds four catalog ids and nothing else.
+function applyHashLook() {
+  const linked = lookFromHash(window.location.hash);
+  if (linked) { state.look = linked; document.body.dataset.linked = 'true'; }
+  return !!linked;
+}
+applyHashLook();
+window.addEventListener('hashchange', () => { if (applyHashLook()) { renderControls(); scheduleBuild(); } });
+
+// The salon's settings can be changed without rebuilding: salon.config.json beside this page
+// replaces the built-in copy (validated the same way). The setup page can also hand over an
+// unsaved draft through this tab's session storage for a preview.
+let salonLocked = false;
+function applySalon(raw, source) {
+  consult.setSalon(loadSalon(raw));
+  document.body.dataset.salon = source;
+  renderControls();
+}
+(async () => {
+  try {
+    const draft = window.sessionStorage.getItem('hairtryon.salonPreview.v1');
+    if (draft) {
+      applySalon(JSON.parse(draft), 'preview');
+      showNotice('These are unsaved settings from the setup page. Customers see them only after you replace salon.config.json.', { kind: 'info', title: 'Salon preview.', sticky: true });
+      return;
+    }
+  } catch { /* no draft */ }
+  try {
+    const res = await fetch(ASSET('salon.config.json'), { cache: 'no-cache' });
+    if (res.ok && !salonLocked) applySalon(await res.json(), 'file');
+  } catch { /* keep the built-in salon */ }
+})().finally(() => { document.body.dataset.salonChecked = 'true'; });
+
+// Installed copy: cache this page's own files so it opens and works with no connection.
+if ('serviceWorker' in navigator && window.isSecureContext && /^https?:$/.test(window.location.protocol)) {
+  navigator.serviceWorker.register(ASSET('sw.js')).then(() => navigator.serviceWorker.ready).then(() => {
+    els.offlineNote.hidden = false;
+    document.body.dataset.offline = 'ready';
+  }).catch(() => { /* hosts that forbid service workers: the page still works online */ });
+}
 
 renderControls();
 applySkin();
@@ -1004,16 +1257,21 @@ build();
 // Test and debugging hooks (read-only views of state; no behaviour depends on them).
 window.__tryon = {
   state, T, BASE_HEAD,
-  setLook: (look) => { state.look = { ...state.look, ...look }; renderControls(); scheduleBuild(); },
+  setLook,
   loadPhotoBlob: (blob) => loadPhoto(blob),
   // Pilot tests: swap the salon config (validated exactly as at startup) and read the current card.
-  setSalonConfig: (raw) => { consult.setSalon(loadSalon(raw)); renderControls(); },
+  setSalonConfig: (raw) => { salonLocked = true; applySalon(raw, 'test'); },
+  get live() { return { status: state.liveStatus, size: state.live, stats: live.stats, streaming: live.streaming, simSteps: sim ? sim.stepCount : 0, maxSpeed: sim ? sim.maxSpeed : 0, hairline: state.liveHairline }; },
+  get sim() { return sim; },
+  get hairVisible() { return !!(hairMesh && hairMesh.visible); },
+  get rigMatrix() { return Array.from(rig.matrix.elements); },
+  openCardText: (text) => extras.openCardText(text),
   get card() { return consult.card; },
   holeCount: parts.holeCount,
   // Render the studio view to a PNG (used by the end-to-end tests as a stand-in photo).
   // `selfie` renders like a phone front camera (63° vertical FOV, ~35 cm away), which is what
   // MediaPipe's pose assumes; the studio's 28° camera would not be a realistic photo.
-  snapshot: (withHair = true, { selfie = true, closeCropped = false } = {}) => new Promise((res) => {
+  snapshot: (withHair = true, { selfie = true, closeCropped = false, yaw = 0, type = 'image/png' } = {}) => new Promise((res) => {
     const vis = hairMesh ? hairMesh.visible : false;
     if (hairMesh) hairMesh.visible = withHair;
     closeCrop.material.color.copy(skinMat.color);
@@ -1024,7 +1282,11 @@ window.__tryon = {
       cam.position.set(0, 0.0, 0.42);
       cam.lookAt(0, -0.03, 0);
     }
+    rig.matrix.makeRotationY(yaw);
+    rig.matrixWorldNeedsUpdate = true;
     renderer.render(scene, cam);
+    rig.matrix.identity();
+    rig.matrixWorldNeedsUpdate = true;
     const c = document.createElement('canvas');
     c.width = els.gl.width;
     c.height = els.gl.height;
@@ -1035,6 +1297,6 @@ window.__tryon = {
     if (hairMesh) hairMesh.visible = vis;
     closeCrop.visible = false;
     requestRender();
-    c.toBlob(res, 'image/png');
+    c.toBlob(res, type, 0.9);
   }),
 };

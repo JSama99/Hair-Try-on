@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Salon setup · Braid Try-On Studio</title>
+<!--HEAD-->
+<style>
+/*FONTS*/
+:root { --bg: #f2f0f3; --surface: #fff; --ink: #1d1620; --muted: #675c6b; --line: #e0d9e2; --accent: #962658; --accent-ink: #fff; --ok: #1f6b3a; --bad: #a11d2b; --warn: #8a4306;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif; --font-body: "Figtree", "Avenir Next", "Segoe UI", system-ui, sans-serif; --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #141016; --surface: #1d1720; --ink: #f2edf3; --muted: #a99dac; --line: #312834; --accent: #e3729f; --accent-ink: #1a0d14; --ok: #7fd39b; --bad: #ff8f9c; --warn: #f3b25a; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #141016; --surface: #1d1720; --ink: #f2edf3; --muted: #a99dac; --line: #312834; --accent: #e3729f; --accent-ink: #1a0d14; --ok: #7fd39b; --bad: #ff8f9c; --warn: #f3b25a; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font-body); }
+main { max-width: 1080px; margin: 0 auto; padding: 28px 16px 60px; display: grid; gap: 22px; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; }
+header { grid-column: 1 / -1; }
+h1 { font: 700 30px/1.1 var(--font-display); margin: 0 0 6px; }
+h2 { font: 700 18px/1.2 var(--font-display); margin: 0 0 10px; }
+p { margin: 0 0 10px; } .hint { color: var(--muted); font-size: 13px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 10px; }
+label { font-weight: 600; font-size: 13px; display: block; }
+input[type=text], input[type=url], select, textarea { width: 100%; font: inherit; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); min-height: 40px; }
+textarea { font: 400 12px/1.45 var(--font-mono); min-height: 220px; }
+.check { display: flex; gap: 8px; align-items: flex-start; font-weight: 500; }
+.check input, legend input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); }
+fieldset.svc { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px 12px; margin: 0; }
+fieldset.svc legend { font-weight: 700; padding: 0 6px; } fieldset.svc legend label { display: flex; gap: 8px; align-items: center; font-size: 15px; }
+.svc-body { display: grid; gap: 6px; margin-top: 6px; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 10px; padding: 9px 14px; font: 600 14px/1.2 var(--font-body); cursor: pointer; min-height: 40px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; }
+#verdict { font-weight: 700; } #verdict.ok { color: var(--ok); } #verdict.bad { color: var(--bad); }
+#problems { margin: 0; padding-left: 18px; font-size: 13px; } #problems .error { color: var(--bad); } #problems .warn { color: var(--warn); }
+.side { display: grid; gap: 22px; }
+.poster { text-align: center; } .poster .qr { width: min(220px, 60vw); height: min(220px, 60vw); margin: 6px auto; background: #fff; padding: 10px; border-radius: 8px; } .poster .qr svg { width: 100%; height: 100%; display: block; }
+.poster h3 { font: 700 20px/1.2 var(--font-display); margin: 4px 0; overflow-wrap: anywhere; }
+a { color: var(--accent); }
+@media (max-width: 820px) { main { grid-template-columns: minmax(0, 1fr); } }
+@media print { body { background: #fff; color: #000; } main > *:not(.side), .side > *:not(.poster), .poster .no-print { display: none !important; } main { display: block; } .poster { border: 0; } .poster .qr { width: 90mm; } .poster h3 { font-size: 28pt; } .poster p.big { font-size: 16pt; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Salon setup</h1>
+    <p>Tell the try-on studio which styles you offer and where customers book. Everything here stays on this device: you finish with one small file, <code>salon.config.json</code>, that sits beside the studio page. <a href="./index.html">Back to the studio</a></p>
+    <p class="hint">There is nowhere to enter prices, deposits or opening hours on purpose: those stay on your own booking page.</p>
+  </header>
+
+  <form class="card" id="form" novalidate onsubmit="return false">
+    <h2>Your salon</h2>
+    <div><label for="name">Salon name</label><input type="text" id="name" maxlength="80" autocomplete="organization"></div>
+    <div><label for="salon-id">Short id <span class="hint">(optional; letters, digits and hyphens)</span></label><input type="text" id="salon-id" maxlength="64" spellcheck="false"></div>
+    <label class="check"><input type="checkbox" id="is-demo"> This is a demonstration, not a real salon</label>
+    <div id="demo-row" hidden><label for="demo-notice">Demo notice shown to visitors</label><input type="text" id="demo-notice" maxlength="240"></div>
+    <div><label for="provider">Booking provider <span class="hint">(for example Booksy, Square, Fresha)</span></label><input type="text" id="provider" maxlength="60"></div>
+    <div><label for="general-url">Your booking page link</label><input type="url" id="general-url" placeholder="https://"></div>
+    <div><label for="instructions">A line for customers <span class="hint">(optional)</span></label><input type="text" id="instructions" maxlength="240"></div>
+    <label class="check"><input type="checkbox" id="use-accent"> Use my brand colour <input type="color" id="accent" value="#962658" aria-label="Brand colour"></label>
+
+    <h2>Styles you offer</h2>
+    <p class="hint">Tick the styles you do. Choose Book directly only for services you are happy to take without seeing the Style Card first.</p>
+    <div id="services" style="display:grid;gap:10px"></div>
+    <div class="row"><button class="btn" type="button" id="start-blank">Clear the form</button></div>
+  </form>
+
+  <div class="side">
+    <section class="card" aria-labelledby="out-h">
+      <h2 id="out-h">Your settings file</h2>
+      <p id="verdict" role="status" aria-live="polite"></p>
+      <ul id="problems"></ul>
+      <div class="row">
+        <button class="btn primary" type="button" id="download">Download salon.config.json</button>
+        <button class="btn" type="button" id="preview">Preview in the studio</button>
+        <button class="btn" type="button" id="copy">Copy</button>
+        <button class="btn" type="button" id="end-preview">End preview</button>
+      </div>
+      <p class="hint" id="out-status" role="status" aria-live="polite"></p>
+      <label for="json">salon.config.json</label>
+      <textarea id="json" readonly spellcheck="false"></textarea>
+    </section>
+
+    <section class="card poster" aria-labelledby="poster-h">
+      <h2 id="poster-h" class="no-print">A QR code for your mirror</h2>
+      <div class="no-print"><label for="studio-url">Where your studio page is hosted</label><input type="url" id="studio-url" placeholder="https://"></div>
+      <h3 id="poster-name"></h3>
+      <p class="big">Scan to try a style on before you book.</p>
+      <div class="qr" id="qr" role="img" aria-label="QR code to the try-on studio"></div>
+      <p class="hint" id="qr-status"></p>
+      <div class="row no-print" style="justify-content:center"><button class="btn" type="button" id="print">Print this poster</button></div>
+    </section>
+  </div>
+</main>
+<!--APP-->
+</body>
+</html>
