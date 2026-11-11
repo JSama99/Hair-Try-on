@@ -25,7 +25,7 @@ Try **knotless braids, box braids, two-strand twists, locs and cornrows** on you
 ```bash
 cd reference && python3 -m pytest                              # 64 — oracle
 cd web && npm install && bash tools/fetch-assets.sh && npm run build
-npm test && npm run e2e                                        # 71 unit + 28 studio + 51 consultation + 26 live-mirror + 52 extras checks (studio, consultation, live mirror, extras)
+npm test && npm run e2e                                        # 71 unit + 28 studio + 51 consultation + 26 live-mirror + 52 extras checks
 cd ios/Packages/HairKit && swift test                          # 57 — on Linux add -Xlinker -lm
 ```
 
