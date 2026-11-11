@@ -4,6 +4,7 @@
 import { renderSVG } from 'uqr';
 import catalog from '../../ios/Packages/HairKit/Sources/TryOnCore/Resources/catalog.json' with { type: 'json' };
 import builtIn from '../salon/salon.config.json' with { type: 'json' };
+import { saveFile } from './save-file.js';
 import { validateSalonConfig, safeBookingUrl, MAX_SERVICES } from './salon-config.js';
 
 const $ = (id) => document.getElementById(id);
@@ -121,15 +122,9 @@ if (typeof document !== 'undefined') {
   }
 
   $('form').addEventListener('input', (e) => { if (e.target.id === 'salon-id') e.target.dataset.touched = '1'; update(); });
-  $('download').addEventListener('click', () => {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
-    a.download = 'salon.config.json';
-    document.body.append(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-    $('out-status').textContent = 'Downloaded. Put the file beside the studio page (replacing the old salon.config.json). No rebuild needed.';
+  $('download').addEventListener('click', async () => {
+    const how = await saveFile('salon.config.json', new Blob([json], { type: 'application/json' }));
+    $('out-status').textContent = how === 'declined' ? 'Nothing was saved.' : 'Downloaded. Put the file beside the studio page (replacing the old salon.config.json). No rebuild needed.';
   });
   $('copy').addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(json); $('out-status').textContent = 'Copied.'; } catch { $('json').focus(); $('json').select(); $('out-status').textContent = 'Copying is blocked here. The text is selected: copy it by hand.'; }

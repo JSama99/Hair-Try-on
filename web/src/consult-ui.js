@@ -10,6 +10,7 @@
 // (preferred day, hair supply) so a reload does not lose them; notes and images
 // are never stored. "Delete saved look" clears it.
 
+import { saveFile } from './save-file.js';
 import * as T from './tryon.js';
 import { bookingPlan, hasSalon, offersStyle } from './salon-config.js';
 import {
@@ -222,17 +223,12 @@ export function createConsultation({ getLook, setLook, getCapture, onNotice }) {
     else manualFallback('Copying is blocked here.');
   }
 
-  function onDownload() {
-    const blob = new Blob([cardToJSON(card)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = cardFileName(card);
-    document.body.append(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
-    el.status.textContent = `Style Card saved as ${a.download}. If nothing downloaded, this browser blocks downloads here: use Copy consultation instead.`;
+  async function onDownload() {
+    const name = cardFileName(card);
+    const how = await saveFile(name, new Blob([cardToJSON(card)], { type: 'application/json' }));
+    el.status.textContent = how === 'declined' ? 'Nothing was saved. Use Copy consultation instead, or try again.'
+      : how === 'saved' ? `Style Card saved as ${name}.`
+        : `Style Card saved as ${name}. If nothing downloaded, this browser blocks downloads here: use Copy consultation instead.`;
   }
 
   async function onShare() {

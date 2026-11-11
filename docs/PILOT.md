@@ -101,7 +101,7 @@ Open **`setup.html`** beside the studio: fill in the form, check the verdict, **
 - No pricing, deposits or availability, by design.
 - Restricted lengths (mid-back, waist) cannot be previewed or carded (no body fitting).
 - Previews do not guarantee the physical result; photo hairline estimates are good to about ±1 cm.
-- Downloads are blocked inside some embedded viewers (for example a claude.ai artifact preview); the page then says to copy instead.
+- Inside a claude.ai artifact, saving a file goes through the host's confirmation prompt (the `downloads` capability); if the viewer declines, the page says to copy instead.
 - The stylist view shows a card she was sent; there is still no inbox.
 - The live mirror needs a camera and an https page; it is not available inside a claude.ai artifact preview, and it has not yet been measured on phones.
 

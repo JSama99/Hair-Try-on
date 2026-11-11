@@ -57,4 +57,4 @@ Considered and not used: Workbox (a 60-line service worker does the job with no 
 | **iPhone app never compiled**; links, My looks and the card viewer are browser-only. | No iOS SDK here. | First build on a Mac (`docs/BUILD.md`), then port `look-link.js` to TryOnCore. |
 | Segmentation fairness by skin tone and curl pattern | Needs consented, stratified photos, not code. | As in `docs/BUILD.md`. |
 | The stylist's reply still arrives through her own channel. | No backend is authorised, and a fake inbox would mislead. | A real backend, when authorised. |
-| In a claude.ai artifact preview: no camera, and downloads are blocked. | The host does not grant the camera to embedded pages. | Host the `dist/` folder on any static https host. |
+| In a claude.ai artifact preview: no camera (file saves go through the host's confirmation prompt). | The host does not grant the camera to embedded pages. | Host the `dist/` folder on any static https host. |
